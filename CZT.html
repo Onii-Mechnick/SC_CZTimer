@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lamp Cycle Timer</title>
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-card: #1c2129;
+            --bg-input: #21262d;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --accent-red: #f85149;
+            --accent-green: #3fb950;
+            --accent-blue: #58a6ff;
+            --accent-orange: #d2991d;
+            --accent-yellow: #e3b341;
+            --accent-purple: #a371f7;
+            --accent-cyan: #39d2c0;
+            --border-color: #30363d;
+            --shadow-color: rgba(0, 0, 0, 0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .main-container {
+            width: 100%;
+            max-width: 960px;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 32px;
+            border: 1px solid var(--border-color);
+        }
+
+        .header {
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.3px;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        .section {
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 10px;
+        }
+
+        /* Grid layouts */
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .info-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 14px 16px;
+        }
+
+        .info-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+
+        .info-value {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+        }
+
+        .info-value.accent-green { color: var(--accent-green); }
+        .info-value.accent-blue { color: var(--accent-blue); }
+        .info-value.accent-orange { color: var(--accent-orange); }
+
+        /* Input */
+        .input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .text-input {
+            flex: 1;
+            padding: 8px 12px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 13px;
+            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+            transition: border-color 0.2s;
+            outline: none;
+        }
+
+        .text-input:focus {
+            border-color: var(--accent-blue);
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+        }
+
+        .text-input.small {
+            width: 100px;
+            flex: none;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 8px 16px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            background: var(--bg-card);
+            color: var(--text-primary);
+            white-space: nowrap;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn:hover {
+            background: #252d38;
+        }
+
+        .btn-primary {
+            background: #1f6feb;
+            border-color: #1f6feb;
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #388bfd;
+            border-color: #388bfd;
+        }
+
+        .btn-danger {
+            background: #da3633;
+            border-color: #da3633;
+            color: #fff;
+        }
+
+        .btn-danger:hover {
+            background: #f85149;
+            border-color: #f85149;
+        }
+
+        .btn-success {
+            background: #238636;
+            border-color: #238636;
+            color: #fff;
+        }
+
+        .btn-success:hover {
+            background: #2ea043;
+            border-color: #2ea043;
+        }
+
+        .btn-warning {
+            background: #9e6a03;
+            border-color: #9e6a03;
+            color: #fff;
+        }
+
+        .btn-warning:hover {
+            background: #bb8009;
+            border-color: #bb8009;
+        }
+
+        .btn-outline {
+            background: transparent;
+        }
+
+        .btn-outline.step2 {
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+        }
+
+        .btn-outline.step2:hover {
+            background: rgba(248, 81, 73, 0.1);
+        }
+
+        .btn-outline.step3 {
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        .btn-outline.step3:hover {
+            background: rgba(63, 185, 80, 0.1);
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        /* Lamps */
+        .lamps-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            padding: 24px 0;
+        }
+
+        .lamp-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .lamp {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 2px solid rgba(255,255,255,0.08);
+            position: relative;
+        }
+
+        .lamp::after {
+            content: '';
+            position: absolute;
+            bottom: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 22px;
+            height: 10px;
+            background: #30363d;
+            border-radius: 0 0 3px 3px;
+        }
+
+        .lamp.red {
+            background: #f85149;
+            box-shadow: 0 0 24px rgba(248, 81, 73, 0.35);
+        }
+
+        .lamp.green {
+            background: #3fb950;
+            box-shadow: 0 0 24px rgba(63, 185, 80, 0.35);
+        }
+
+        .lamp.black {
+            background: #21262d;
+            box-shadow: none;
+        }
+
+        .lamp:hover {
+            transform: scale(1.08);
+            border-color: rgba(255,255,255,0.2);
+        }
+
+        .lamp-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .direction-hint {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: var(--text-secondary);
+            padding: 0 10px;
+        }
+
+        /* Timer display */
+        .timer-display {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 16px;
+            align-items: center;
+            text-align: center;
+            padding: 20px 0;
+        }
+
+        .timer-block {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .timer-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .timer-value {
+            font-size: 40px;
+            font-weight: 600;
+            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+            letter-spacing: 2px;
+            color: var(--text-primary);
+        }
+
+        .timer-value.remaining {
+            color: #58a6ff;
+        }
+
+        .timer-value.total {
+            color: var(--accent-cyan);
+        }
+
+        .timer-separator {
+            font-size: 24px;
+            color: var(--text-secondary);
+            font-weight: 300;
+            padding-top: 20px;
+        }
+
+        /* Progress bar */
+        .progress-container {
+            width: 100%;
+            height: 4px;
+            background: var(--bg-input);
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: #58a6ff;
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        /* Alert */
+        .alert {
+            padding: 8px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-top: 12px;
+            display: none;
+        }
+
+        .alert.warning {
+            display: block;
+            background: rgba(210, 153, 29, 0.1);
+            border: 1px solid rgba(210, 153, 29, 0.3);
+            color: var(--accent-orange);
+        }
+
+        /* Divider */
+        .divider {
+            border: none;
+            border-top: 1px solid var(--border-color);
+            margin: 20px 0;
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 20px;
+            }
+            
+            .grid-3 {
+                grid-template-columns: 1fr;
+            }
+            
+            .timer-display {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            
+            .timer-separator {
+                display: none;
+            }
+            
+            .timer-value {
+                font-size: 28px;
+            }
+            
+            .lamps-container {
+                gap: 12px;
+            }
+            
+            .lamp {
+                width: 48px;
+                height: 48px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <script>
+        // ============ CONFIGURATION ============
+        const CONFIG = {
+            step2Timer: 1440,  // 24 minutes = 1440 seconds
+            step3Timer: 900,   // 15 minutes = 900 seconds
+            globalTime: '09.06.2026 01:16',
+            autoSyncOnStart: true
+        };
+        // ======================================
+    </script>
+
+    <div class="main-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="title">Lamp Cycle Timer</div>
+            <div class="subtitle">Global Time Synchronization</div>
+        </div>
+
+        <!-- Global Time -->
+        <div class="section">
+            <div class="section-title">Global Time Reference</div>
+            <div class="grid-3">
+                <div class="info-card">
+                    <div class="info-label">Global Start Time</div>
+                    <div class="info-value accent-green" id="globalTimeDisplay">--</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-label">System Time</div>
+                    <div class="info-value accent-blue" id="currentTimeDisplay">--</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-label">Elapsed</div>
+                    <div class="info-value accent-orange" id="elapsedTimeDisplay">--</div>
+                </div>
+            </div>
+            <div class="input-row" style="margin-top: 12px;">
+                <input type="text" class="text-input" id="globalTimeInput" 
+                       placeholder="DD.MM.YYYY HH:MM">
+                <button class="btn btn-primary" onclick="setNewGlobalTime()">Set &amp; Sync</button>
+                <button class="btn btn-warning" onclick="syncGlobalTimeFromCurrentState()" title="Calculate global start time based on current cycle state">
+                    Set Global Time by Current State
+                </button>
+            </div>
+        </div>
+
+        <hr class="divider">
+
+        <!-- Step Controls -->
+        <div class="section">
+            <div class="section-title">Step Navigation</div>
+            <div class="btn-group">
+                <button class="btn btn-outline step2" onclick="jumpToStep(2)">Step 2 — Red → Green</button>
+                <button class="btn btn-outline step3" onclick="jumpToStep(3)">Step 3 — Green → Black</button>
+            </div>
+        </div>
+
+        <!-- Lamps -->
+        <div class="section">
+            <div class="info-card" style="text-align: center; margin-bottom: 12px;">
+                <div id="stepStatus" style="font-weight: 600; font-size: 14px;">Step 1 — All Red</div>
+            </div>
+            <div class="lamps-container" id="lampsContainer"></div>
+            <div class="direction-hint">
+                <span>Step 2: Left → Right</span>
+                <span>Step 3: Right → Left</span>
+            </div>
+        </div>
+
+        <hr class="divider">
+
+        <!-- Timer Configuration -->
+        <div class="section">
+            <div class="section-title">Timer Configuration (seconds)</div>
+            <div class="grid-2" style="margin-bottom: 10px;">
+                <div>
+                    <div class="info-label" style="margin-bottom: 4px;">Step 2 Interval</div>
+                    <div class="input-row">
+                        <input type="number" class="text-input small" id="step2TimerInput" 
+                               value="1440" min="1" onchange="updateTimerDisplay()">
+                        <span style="font-size: 12px; color: var(--text-secondary);" id="step2Conversion">24 min 0 sec</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="info-label" style="margin-bottom: 4px;">Step 3 Interval</div>
+                    <div class="input-row">
+                        <input type="number" class="text-input small" id="step3TimerInput" 
+                               value="900" min="1" onchange="updateTimerDisplay()">
+                        <span style="font-size: 12px; color: var(--text-secondary);" id="step3Conversion">15 min 0 sec</span>
+                    </div>
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="updateTimers()">Apply Configuration</button>
+        </div>
+
+        <hr class="divider">
+
+        <!-- Timer Display -->
+        <div class="section">
+            <div class="timer-display">
+                <div class="timer-block">
+                    <div class="timer-label">Current Lamp Remaining</div>
+                    <div class="timer-value remaining" id="clockDisplay">00:00:00</div>
+                </div>
+                <div class="timer-separator">/</div>
+                <div class="timer-block">
+                    <div class="timer-label">Total Step Remaining</div>
+                    <div class="timer-value total" id="totalStepDisplay">00:00:00</div>
+                </div>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+            </div>
+        </div>
+
+        <hr class="divider">
+
+        <!-- Actions -->
+        <div class="btn-group" style="justify-content: space-between;">
+            <div class="btn-group">
+                <button class="btn btn-danger" onclick="resetCycle()">Reset to Step 1</button>
+                <button class="btn btn-success" onclick="resyncWithGlobalTime()">Re-sync</button>
+            </div>
+            <div class="alert warning" id="manualIndicator">Manual mode active — Re-sync to restore global time</div>
+        </div>
+    </div>
+
+    <script>
+        // ============ APPLICATION LOGIC ============
+        
+        let currentStep = 1;
+        let lampStates = ['red', 'red', 'red', 'red', 'red'];
+        let currentLampIndex = 0;
+        let timeRemaining = 0;
+        let totalStepRemaining = 0;
+        let cycleStartTime = null;
+        let manualOverride = false;
+        let autoSyncEnabled = true;
+        let manualTimerStart = null;
+        let manualTimerRemaining = 0;
+        let manualTotalStepRemaining = 0;
+        let step2Duration = CONFIG.step2Timer;
+        let step3Duration = CONFIG.step3Timer;
+        let timerInterval = null;
+        
+        function getCurrentLampDuration() {
+            return currentStep === 2 ? step2Duration : (currentStep === 3 ? step3Duration : 0);
+        }
+        
+        function getTotalStepDuration() {
+            if (currentStep === 2) return step2Duration * 5;
+            if (currentStep === 3) return step3Duration * 5;
+            return 0;
+        }
+        
+        function createLamps() {
+            const container = document.getElementById('lampsContainer');
+            container.innerHTML = '';
+            for (let i = 0; i < 5; i++) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'lamp-wrapper';
+                
+                const lamp = document.createElement('div');
+                lamp.className = 'lamp black';
+                lamp.id = `lamp-${i}`;
+                lamp.onclick = () => onLampClick(i);
+                
+                const label = document.createElement('span');
+                label.className = 'lamp-label';
+                label.textContent = `Lamp ${i + 1}`;
+                
+                wrapper.appendChild(lamp);
+                wrapper.appendChild(label);
+                container.appendChild(wrapper);
+            }
+        }
+        
+        function updateAllLamps() {
+            for (let i = 0; i < 5; i++) {
+                const lamp = document.getElementById(`lamp-${i}`);
+                if (lamp) lamp.className = 'lamp ' + lampStates[i];
+            }
+        }
+        
+        function parseGlobalTime(timeStr) {
+            try {
+                const parts = timeStr.trim().split(' ');
+                if (parts.length === 2) {
+                    const dateParts = parts[0].split('.');
+                    const timeParts = parts[1].split(':');
+                    if (dateParts.length === 3 && timeParts.length === 2) {
+                        return new Date(
+                            parseInt(dateParts[2]),
+                            parseInt(dateParts[1]) - 1,
+                            parseInt(dateParts[0]),
+                            parseInt(timeParts[0]),
+                            parseInt(timeParts[1]),
+                            0
+                        );
+                    }
+                }
+                if (parts.length === 1 && parts[0].includes(':')) {
+                    const timeParts = parts[0].split(':');
+                    if (timeParts.length === 2) {
+                        const now = new Date();
+                        return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 
+                                      parseInt(timeParts[0]), parseInt(timeParts[1]), 0);
+                    }
+                }
+            } catch (e) {
+                console.error('Parse error:', e);
+            }
+            return new Date();
+        }
+        
+        function formatDateTime(date) {
+            const d = String(date.getDate()).padStart(2, '0');
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const y = date.getFullYear();
+            const h = String(date.getHours()).padStart(2, '0');
+            const min = String(date.getMinutes()).padStart(2, '0');
+            return `${d}.${m}.${y} ${h}:${min}`;
+        }
+        
+        function formatTime(seconds) {
+            const s = Math.floor(Math.max(0, seconds));
+            const h = Math.floor(s / 3600);
+            const m = Math.floor((s % 3600) / 60);
+            const sec = s % 60;
+            return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+        }
+        
+        function getTotalCycleDuration() {
+            return (step2Duration * 5) + (step3Duration * 5);
+        }
+        
+        function calculateStateAtTime(elapsedSeconds) {
+            const totalDuration = getTotalCycleDuration();
+            elapsedSeconds = Math.max(0, elapsedSeconds);
+            let cycleElapsed = totalDuration > 0 ? elapsedSeconds % totalDuration : 0;
+            
+            // Step 1: All red (instant)
+            if (cycleElapsed < 1) {
+                return { step: 1, states: ['red','red','red','red','red'], lampsCompleted: 0, remainingLamp: 0, remainingStep: 0 };
+            }
+            
+            const step2Total = step2Duration * 5;
+            if (cycleElapsed <= step2Total) {
+                const lampsCompleted = Math.min(Math.floor(cycleElapsed / step2Duration), 5);
+                const timeIntoCurrent = cycleElapsed % step2Duration;
+                const states = ['red','red','red','red','red'];
+                for (let i = 0; i < lampsCompleted; i++) states[i] = 'green';
+                const remainingLamp = lampsCompleted >= 5 ? 0 : step2Duration - timeIntoCurrent;
+                const remainingStep = step2Total - cycleElapsed;
+                return { step: 2, states, lampsCompleted, remainingLamp, remainingStep };
+            }
+            
+            const step3Elapsed = cycleElapsed - step2Total;
+            const step3Total = step3Duration * 5;
+            const lampsCompleted = Math.min(Math.floor(step3Elapsed / step3Duration), 5);
+            const timeIntoCurrent = step3Elapsed % step3Duration;
+            const states = ['green','green','green','green','green'];
+            for (let i = 0; i < lampsCompleted; i++) states[4 - i] = 'black';
+            const remainingLamp = lampsCompleted >= 5 ? 0 : step3Duration - timeIntoCurrent;
+            const remainingStep = step3Total - step3Elapsed;
+            return { step: 3, states, lampsCompleted, remainingLamp, remainingStep };
+        }
+        
+        // Calculate elapsed time from current state back to cycle start
+        function calculateElapsedFromCurrentState() {
+            const totalDuration = getTotalCycleDuration();
+            
+            if (currentStep === 1) {
+                // Step 1 is at the very beginning of a cycle
+                return 0;
+            }
+            
+            let elapsedInCycle = 0;
+            
+            if (currentStep === 2) {
+                // We're in Step 2
+                const step2Total = step2Duration * 5;
+                const lampsElapsed = currentLampIndex;
+                const timeIntoCurrentLamp = step2Duration - timeRemaining;
+                elapsedInCycle = (lampsElapsed * step2Duration) + timeIntoCurrentLamp;
+            } else if (currentStep === 3) {
+                // We're in Step 3
+                const step2Total = step2Duration * 5;
+                const lampsElapsed = currentLampIndex;
+                const timeIntoCurrentLamp = step3Duration - timeRemaining;
+                elapsedInCycle = step2Total + (lampsElapsed * step3Duration) + timeIntoCurrentLamp;
+            }
+            
+            return Math.max(0, elapsedInCycle);
+        }
+        
+        function syncStateWithElapsedTime(elapsedSeconds) {
+            const s = calculateStateAtTime(elapsedSeconds);
+            currentStep = s.step;
+            lampStates = s.states;
+            currentLampIndex = s.lampsCompleted;
+            timeRemaining = Math.floor(s.remainingLamp);
+            totalStepRemaining = Math.floor(s.remainingStep);
+            
+            updateAllLamps();
+            updateClockDisplay();
+            updateStepDisplay();
+            updateProgressBar();
+        }
+        
+        function updateProgressBar() {
+            const bar = document.getElementById('progressBar');
+            const total = getTotalStepDuration();
+            if (currentStep === 1 || total === 0) {
+                bar.style.width = '0%';
+            } else {
+                const elapsed = total - totalStepRemaining;
+                bar.style.width = Math.min(100, Math.max(0, (elapsed / total) * 100)) + '%';
+            }
+        }
+        
+        function loadGlobalTimeAndSync() {
+            autoSyncEnabled = true;
+            manualOverride = false;
+            cycleStartTime = parseGlobalTime(CONFIG.globalTime);
+            document.getElementById('globalTimeDisplay').textContent = formatDateTime(cycleStartTime);
+            document.getElementById('manualIndicator').style.display = 'none';
+            
+            const now = new Date();
+            syncStateWithElapsedTime(Math.max(0, (now - cycleStartTime) / 1000));
+        }
+        
+        function setNewGlobalTime() {
+            const input = document.getElementById('globalTimeInput').value.trim();
+            const parsed = parseGlobalTime(input);
+            if (parsed && !isNaN(parsed.getTime())) {
+                CONFIG.globalTime = formatDateTime(parsed);
+                loadGlobalTimeAndSync();
+                document.getElementById('globalTimeInput').value = '';
+            } else {
+                alert('Invalid format. Use DD.MM.YYYY HH:MM');
+            }
+        }
+        
+        function syncGlobalTimeFromCurrentState() {
+            // Calculate how many seconds have elapsed in the cycle to reach current state
+            const elapsedInCycle = calculateElapsedFromCurrentState();
+            
+            // Calculate the global start time: current time - elapsed in cycle
+            const now = new Date();
+            const calculatedStart = new Date(now.getTime() - (elapsedInCycle * 1000));
+            
+            // Also adjust for completed cycles if needed
+            const totalCycleDuration = getTotalCycleDuration();
+            if (totalCycleDuration > 0 && elapsedInCycle > 0) {
+                // The calculated start is already correct for the current cycle
+                // Just ensure it's not in the future
+                if (calculatedStart > now) {
+                    calculatedStart.setTime(calculatedStart.getTime() - (totalCycleDuration * 1000));
+                }
+            }
+            
+            // Update config and display
+            CONFIG.globalTime = formatDateTime(calculatedStart);
+            document.getElementById('globalTimeDisplay').textContent = CONFIG.globalTime;
+            document.getElementById('globalTimeInput').value = CONFIG.globalTime;
+            
+            // Enable sync mode
+            cycleStartTime = calculatedStart;
+            autoSyncEnabled = true;
+            manualOverride = false;
+            document.getElementById('manualIndicator').style.display = 'none';
+            
+            // Sync the state
+            const elapsed = Math.max(0, (now - cycleStartTime) / 1000);
+            syncStateWithElapsedTime(elapsed);
+            
+            alert(`Global time synchronized from current state!\n\nCalculated start: ${CONFIG.globalTime}\nElapsed in cycle: ${formatTime(elapsedInCycle)}\nTotal cycle: ${formatTime(totalCycleDuration)}`);
+        }
+        
+        function resyncWithGlobalTime() {
+            loadGlobalTimeAndSync();
+        }
+        
+        function enableManualMode() {
+            if (!manualOverride) {
+                manualOverride = true;
+                autoSyncEnabled = false;
+                document.getElementById('manualIndicator').style.display = 'block';
+            }
+            manualTimerStart = new Date();
+            manualTimerRemaining = timeRemaining;
+            manualTotalStepRemaining = totalStepRemaining;
+        }
+        
+        function jumpToStep(step) {
+            enableManualMode();
+            
+            if (step === 2) {
+                currentStep = 2;
+                lampStates = ['red','red','red','red','red'];
+                currentLampIndex = 0;
+                timeRemaining = step2Duration;
+                totalStepRemaining = step2Duration * 5;
+            } else if (step === 3) {
+                currentStep = 3;
+                lampStates = ['green','green','green','green','green'];
+                currentLampIndex = 0;
+                timeRemaining = step3Duration;
+                totalStepRemaining = step3Duration * 5;
+            }
+            
+            manualTimerRemaining = timeRemaining;
+            manualTotalStepRemaining = totalStepRemaining;
+            
+            updateAllLamps();
+            updateClockDisplay();
+            updateStepDisplay();
+            updateProgressBar();
+        }
+        
+        function onLampClick(lampIndex) {
+            enableManualMode();
+            
+            if (currentStep === 1) {
+                // Step 1 is instant - auto advance to step 2
+                advanceToStep2();
+                return;
+            }
+            
+            if (currentStep === 2) {
+                if (lampIndex !== currentLampIndex) {
+                    alert(`Click Lamp ${currentLampIndex + 1} next.`);
+                    return;
+                }
+                if (lampStates[lampIndex] === 'red') {
+                    lampStates[lampIndex] = 'green';
+                    updateAllLamps();
+                    currentLampIndex++;
+                    timeRemaining = step2Duration;
+                    totalStepRemaining = (5 - currentLampIndex) * step2Duration;
+                    
+                    if (currentLampIndex >= 5) {
+                        advanceToStep3();
+                    } else {
+                        manualTimerStart = new Date();
+                        manualTimerRemaining = timeRemaining;
+                        manualTotalStepRemaining = totalStepRemaining;
+                        updateClockDisplay();
+                        updateStepDisplay();
+                        updateProgressBar();
+                    }
+                }
+            } else if (currentStep === 3) {
+                const expected = 4 - currentLampIndex;
+                if (lampIndex !== expected) {
+                    alert(`Click Lamp ${expected + 1} next.`);
+                    return;
+                }
+                if (lampStates[lampIndex] === 'green') {
+                    lampStates[lampIndex] = 'black';
+                    updateAllLamps();
+                    currentLampIndex++;
+                    timeRemaining = step3Duration;
+                    totalStepRemaining = (5 - currentLampIndex) * step3Duration;
+                    
+                    if (currentLampIndex >= 5) {
+                        advanceToStep2(); // Cycle: Step 3 complete -> Step 2
+                    } else {
+                        manualTimerStart = new Date();
+                        manualTimerRemaining = timeRemaining;
+                        manualTotalStepRemaining = totalStepRemaining;
+                        updateClockDisplay();
+                        updateStepDisplay();
+                        updateProgressBar();
+                    }
+                }
+            }
+        }
+        
+        function advanceToStep2() {
+            currentStep = 2;
+            lampStates = ['red','red','red','red','red'];
+            currentLampIndex = 0;
+            timeRemaining = step2Duration;
+            totalStepRemaining = step2Duration * 5;
+            
+            manualTimerStart = new Date();
+            manualTimerRemaining = timeRemaining;
+            manualTotalStepRemaining = totalStepRemaining;
+            
+            updateAllLamps();
+            updateClockDisplay();
+            updateStepDisplay();
+            updateProgressBar();
+        }
+        
+        function advanceToStep3() {
+            currentStep = 3;
+            lampStates = ['green','green','green','green','green'];
+            currentLampIndex = 0;
+            timeRemaining = step3Duration;
+            totalStepRemaining = step3Duration * 5;
+            
+            manualTimerStart = new Date();
+            manualTimerRemaining = timeRemaining;
+            manualTotalStepRemaining = totalStepRemaining;
+            
+            updateAllLamps();
+            updateClockDisplay();
+            updateStepDisplay();
+            updateProgressBar();
+        }
+        
+        function autoAdvanceStep2Lamp() {
+            if (currentStep === 2 && currentLampIndex < 5) {
+                for (let i = currentLampIndex; i < 5; i++) {
+                    if (lampStates[i] === 'red') {
+                        lampStates[i] = 'green';
+                        updateAllLamps();
+                        currentLampIndex = i + 1;
+                        timeRemaining = step2Duration;
+                        totalStepRemaining = (5 - currentLampIndex) * step2Duration;
+                        
+                        if (currentLampIndex >= 5) {
+                            advanceToStep3();
+                        } else {
+                            manualTimerStart = new Date();
+                            manualTimerRemaining = timeRemaining;
+                            manualTotalStepRemaining = totalStepRemaining;
+                            updateClockDisplay();
+                            updateStepDisplay();
+                            updateProgressBar();
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        
+        function autoAdvanceStep3Lamp() {
+            if (currentStep === 3 && currentLampIndex < 5) {
+                for (let i = currentLampIndex; i < 5; i++) {
+                    const ri = 4 - i;
+                    if (lampStates[ri] === 'green') {
+                        lampStates[ri] = 'black';
+                        updateAllLamps();
+                        currentLampIndex = i + 1;
+                        timeRemaining = step3Duration;
+                        totalStepRemaining = (5 - currentLampIndex) * step3Duration;
+                        
+                        if (currentLampIndex >= 5) {
+                            advanceToStep2(); // Cycle: Step 3 complete -> Step 2
+                        } else {
+                            manualTimerStart = new Date();
+                            manualTimerRemaining = timeRemaining;
+                            manualTotalStepRemaining = totalStepRemaining;
+                            updateClockDisplay();
+                            updateStepDisplay();
+                            updateProgressBar();
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+        
+        function updateStepDisplay() {
+            const el = document.getElementById('stepStatus');
+            const m = manualOverride ? ' [Manual]' : '';
+            const texts = {
+                1: `Step 1 — All Red${m}`,
+                2: `Step 2 — Red → Green (${currentLampIndex}/5)${m}`,
+                3: `Step 3 — Green → Black (${currentLampIndex}/5)${m}`
+            };
+            el.textContent = texts[currentStep] || '';
+        }
+        
+        function updateClockDisplay() {
+            document.getElementById('clockDisplay').textContent = formatTime(timeRemaining);
+            document.getElementById('totalStepDisplay').textContent = formatTime(totalStepRemaining);
+        }
+        
+        function updateCurrentTimeDisplay() {
+            const now = new Date();
+            document.getElementById('currentTimeDisplay').textContent = formatDateTime(now);
+            if (cycleStartTime) {
+                const elapsed = Math.max(0, (now - cycleStartTime) / 1000);
+                const ts = Math.floor(elapsed);
+                const d = Math.floor(ts / 86400);
+                const h = Math.floor((ts % 86400) / 3600);
+                const m = Math.floor((ts % 3600) / 60);
+                const s = ts % 60;
+                let str;
+                if (d > 0) str = `${d}d ${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+                else str = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+                document.getElementById('elapsedTimeDisplay').textContent = str;
+            }
+        }
+        
+        function updateTimerDisplay() {
+            const s2 = parseInt(document.getElementById('step2TimerInput').value) || 0;
+            const s3 = parseInt(document.getElementById('step3TimerInput').value) || 0;
+            document.getElementById('step2Conversion').textContent = `${Math.floor(s2/60)} min ${s2%60} sec`;
+            document.getElementById('step3Conversion').textContent = `${Math.floor(s3/60)} min ${s3%60} sec`;
+        }
+        
+        function updateTimers() {
+            const s2 = parseInt(document.getElementById('step2TimerInput').value);
+            const s3 = parseInt(document.getElementById('step3TimerInput').value);
+            if (s2 <= 0 || s3 <= 0 || isNaN(s2) || isNaN(s3)) {
+                alert('Timer values must be positive numbers');
+                return;
+            }
+            step2Duration = s2;
+            step3Duration = s3;
+            CONFIG.step2Timer = s2;
+            CONFIG.step3Timer = s3;
+            updateTimerDisplay();
+            loadGlobalTimeAndSync();
+        }
+        
+        function resetCycle() {
+            const now = new Date();
+            CONFIG.globalTime = formatDateTime(now);
+            loadGlobalTimeAndSync();
+        }
+        
+        function timerLoop() {
+            const now = new Date();
+            
+            if (autoSyncEnabled && !manualOverride) {
+                if (cycleStartTime) {
+                    syncStateWithElapsedTime(Math.max(0, (now - cycleStartTime) / 1000));
+                }
+            } else if (manualOverride && manualTimerStart) {
+                if (currentStep === 2 || currentStep === 3) {
+                    const elapsed = (now - manualTimerStart) / 1000;
+                    timeRemaining = Math.floor(Math.max(0, manualTimerRemaining - elapsed));
+                    totalStepRemaining = Math.floor(Math.max(0, manualTotalStepRemaining - elapsed));
+                    updateClockDisplay();
+                    updateProgressBar();
+                    
+                    if (timeRemaining <= 0 && currentLampIndex < 5) {
+                        if (currentStep === 2) autoAdvanceStep2Lamp();
+                        else if (currentStep === 3) autoAdvanceStep3Lamp();
+                    }
+                }
+            }
+            
+            updateCurrentTimeDisplay();
+        }
+        
+        function init() {
+            createLamps();
+            document.getElementById('step2TimerInput').value = CONFIG.step2Timer;
+            document.getElementById('step3TimerInput').value = CONFIG.step3Timer;
+            document.getElementById('globalTimeInput').value = CONFIG.globalTime;
+            document.getElementById('globalTimeDisplay').textContent = CONFIG.globalTime;
+            document.getElementById('manualIndicator').style.display = 'none';
+            updateTimerDisplay();
+            
+            if (CONFIG.autoSyncOnStart) {
+                loadGlobalTimeAndSync();
+            } else {
+                updateAllLamps();
+                updateClockDisplay();
+                updateStepDisplay();
+            }
+            
+            timerInterval = setInterval(timerLoop, 100);
+        }
+        
+        window.onload = init;
+    </script>
+</body>
+</html>
