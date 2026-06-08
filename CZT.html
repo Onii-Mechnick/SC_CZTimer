@@ -245,21 +245,21 @@
             background: transparent;
         }
 
-        .btn-outline.step2 {
+        .btn-outline.step1 {
             border-color: var(--accent-red);
             color: var(--accent-red);
         }
 
-        .btn-outline.step2:hover {
+        .btn-outline.step1:hover {
             background: rgba(248, 81, 73, 0.1);
         }
 
-        .btn-outline.step3 {
+        .btn-outline.step2 {
             border-color: var(--accent-green);
             color: var(--accent-green);
         }
 
-        .btn-outline.step3:hover {
+        .btn-outline.step2:hover {
             background: rgba(63, 185, 80, 0.1);
         }
 
@@ -473,22 +473,21 @@
 </head>
 <body>
     <script>
-        // ============ DEFAULT CONFIGURATION ============
+        // ============ DEFAULT CONFIGURATION (used only on first visit or after reset) ============
         const DEFAULT_CONFIG = {
-            step2Timer: 1440,  // 24 minutes = 1440 seconds
-            step3Timer: 900,   // 15 minutes = 900 seconds
-            globalTime: '',    // Will be set to current time if empty
-            autoSyncOnStart: true
+            step1Timer: 1440,  // Step 1 (Red → Green): 24 minutes = 1440 seconds
+            step2Timer: 900,   // Step 2 (Green → Black): 15 minutes = 900 seconds
+            globalTime: '09.06.2026 00:00'
         };
         
         // Cookie configuration keys
         const COOKIE_KEYS = {
+            step1Timer: 'lamp_timer_step1',
             step2Timer: 'lamp_timer_step2',
-            step3Timer: 'lamp_timer_step3',
             globalTime: 'lamp_timer_global_time'
         };
         
-        // Current configuration (loaded from cookies or defaults)
+        // Current configuration - start with defaults, then override from cookies
         let CONFIG = { ...DEFAULT_CONFIG };
         // ======================================
     </script>
@@ -541,20 +540,20 @@
         <div class="section">
             <div class="section-title">Step Navigation</div>
             <div class="btn-group">
-                <button class="btn btn-outline step2" onclick="jumpToStep(2)">Step 2 — Red → Green</button>
-                <button class="btn btn-outline step3" onclick="jumpToStep(3)">Step 3 — Green → Black</button>
+                <button class="btn btn-outline step1" onclick="jumpToStep(1)">Step 1 — Red → Green</button>
+                <button class="btn btn-outline step2" onclick="jumpToStep(2)">Step 2 — Green → Black</button>
             </div>
         </div>
 
         <!-- Lamps -->
         <div class="section">
             <div class="info-card" style="text-align: center; margin-bottom: 12px;">
-                <div id="stepStatus" style="font-weight: 600; font-size: 14px;">Step 1 — All Red</div>
+                <div id="stepStatus" style="font-weight: 600; font-size: 14px;">Step 1 — Red → Green</div>
             </div>
             <div class="lamps-container" id="lampsContainer"></div>
             <div class="direction-hint">
-                <span>Step 2: Left → Right</span>
-                <span>Step 3: Right → Left</span>
+                <span>Step 1: Left → Right (Red → Green)</span>
+                <span>Step 2: Right → Left (Green → Black)</span>
             </div>
         </div>
 
@@ -565,19 +564,19 @@
             <div class="section-title">Timer Configuration (seconds)</div>
             <div class="grid-2" style="margin-bottom: 10px;">
                 <div>
+                    <div class="info-label" style="margin-bottom: 4px;">Step 1 Interval</div>
+                    <div class="input-row">
+                        <input type="number" class="text-input small" id="step1TimerInput" 
+                               min="1" onchange="updateTimerDisplay()">
+                        <span style="font-size: 12px; color: var(--text-secondary);" id="step1Conversion">--</span>
+                    </div>
+                </div>
+                <div>
                     <div class="info-label" style="margin-bottom: 4px;">Step 2 Interval</div>
                     <div class="input-row">
                         <input type="number" class="text-input small" id="step2TimerInput" 
                                min="1" onchange="updateTimerDisplay()">
                         <span style="font-size: 12px; color: var(--text-secondary);" id="step2Conversion">--</span>
-                    </div>
-                </div>
-                <div>
-                    <div class="info-label" style="margin-bottom: 4px;">Step 3 Interval</div>
-                    <div class="input-row">
-                        <input type="number" class="text-input small" id="step3TimerInput" 
-                               min="1" onchange="updateTimerDisplay()">
-                        <span style="font-size: 12px; color: var(--text-secondary);" id="step3Conversion">--</span>
                     </div>
                 </div>
             </div>
@@ -609,7 +608,7 @@
         <!-- Actions -->
         <div class="btn-group" style="justify-content: space-between; align-items: flex-start;">
             <div class="btn-group">
-                <button class="btn btn-danger" onclick="resetCycle()">Reset to Step 1</button>
+                <button class="btn btn-danger" onclick="resetCycle()">Reset Cycle</button>
                 <button class="btn btn-success" onclick="resyncWithGlobalTime()">Re-sync</button>
             </div>
             <div id="statusMessages">
@@ -644,65 +643,73 @@
         }
         
         function deleteAllCookies() {
+            deleteCookie(COOKIE_KEYS.step1Timer);
             deleteCookie(COOKIE_KEYS.step2Timer);
-            deleteCookie(COOKIE_KEYS.step3Timer);
             deleteCookie(COOKIE_KEYS.globalTime);
         }
         
         function loadConfigFromCookies() {
-            // Load step 2 timer
+            let loadedFromCookies = false;
+            
+            // Load step 1 timer from cookie
+            const step1Cookie = getCookie(COOKIE_KEYS.step1Timer);
+            if (step1Cookie !== null) {
+                const val = parseInt(step1Cookie);
+                if (!isNaN(val) && val > 0) {
+                    CONFIG.step1Timer = val;
+                    loadedFromCookies = true;
+                    console.log('Loaded step1Timer from cookie:', val);
+                }
+            }
+            
+            // Load step 2 timer from cookie
             const step2Cookie = getCookie(COOKIE_KEYS.step2Timer);
             if (step2Cookie !== null) {
                 const val = parseInt(step2Cookie);
                 if (!isNaN(val) && val > 0) {
                     CONFIG.step2Timer = val;
+                    loadedFromCookies = true;
+                    console.log('Loaded step2Timer from cookie:', val);
                 }
             }
             
-            // Load step 3 timer
-            const step3Cookie = getCookie(COOKIE_KEYS.step3Timer);
-            if (step3Cookie !== null) {
-                const val = parseInt(step3Cookie);
-                if (!isNaN(val) && val > 0) {
-                    CONFIG.step3Timer = val;
-                }
-            }
-            
-            // Load global time
+            // Load global time from cookie
             const globalTimeCookie = getCookie(COOKIE_KEYS.globalTime);
             if (globalTimeCookie !== null && globalTimeCookie.trim() !== '') {
                 CONFIG.globalTime = globalTimeCookie.trim();
+                loadedFromCookies = true;
+                console.log('Loaded globalTime from cookie:', CONFIG.globalTime);
             } else {
-                // Set default global time to now
-                const now = new Date();
-                CONFIG.globalTime = formatDateTime(now);
+                console.log('No globalTime cookie found, using default:', CONFIG.globalTime);
             }
+            
+            return loadedFromCookies;
         }
         
         function saveConfigToCookies() {
+            console.log('Saving config to cookies:', CONFIG);
+            setCookie(COOKIE_KEYS.step1Timer, CONFIG.step1Timer);
             setCookie(COOKIE_KEYS.step2Timer, CONFIG.step2Timer);
-            setCookie(COOKIE_KEYS.step3Timer, CONFIG.step3Timer);
             setCookie(COOKIE_KEYS.globalTime, CONFIG.globalTime);
             updateCookieIndicator();
         }
         
         function resetAllCookies() {
-            if (confirm('Reset all saved settings to defaults?\n\nThis will clear:\n- Step 2 Timer\n- Step 3 Timer\n- Global Time\n\nThe page will reload with default values.')) {
+            if (confirm('Reset all saved settings to defaults?\n\nThis will clear:\n- Step 1 Timer\n- Step 2 Timer\n- Global Time\n\nDefaults will be restored.')) {
                 deleteAllCookies();
                 
                 // Reset CONFIG to defaults
                 CONFIG = { ...DEFAULT_CONFIG };
-                const now = new Date();
-                CONFIG.globalTime = formatDateTime(now);
+                console.log('Reset to defaults:', CONFIG);
                 
                 // Update UI
+                document.getElementById('step1TimerInput').value = CONFIG.step1Timer;
                 document.getElementById('step2TimerInput').value = CONFIG.step2Timer;
-                document.getElementById('step3TimerInput').value = CONFIG.step3Timer;
                 document.getElementById('globalTimeInput').value = CONFIG.globalTime;
                 document.getElementById('globalTimeDisplay').textContent = CONFIG.globalTime;
                 
+                step1Duration = CONFIG.step1Timer;
                 step2Duration = CONFIG.step2Timer;
-                step3Duration = CONFIG.step3Timer;
                 
                 updateTimerDisplay();
                 updateCookieIndicator();
@@ -725,8 +732,8 @@
         
         function updateCookieIndicator() {
             const indicator = document.getElementById('cookieIndicator');
-            const hasCookies = getCookie(COOKIE_KEYS.step2Timer) !== null || 
-                              getCookie(COOKIE_KEYS.step3Timer) !== null || 
+            const hasCookies = getCookie(COOKIE_KEYS.step1Timer) !== null || 
+                              getCookie(COOKIE_KEYS.step2Timer) !== null || 
                               getCookie(COOKIE_KEYS.globalTime) !== null;
             
             if (hasCookies) {
@@ -755,17 +762,17 @@
         let manualTimerStart = null;
         let manualTimerRemaining = 0;
         let manualTotalStepRemaining = 0;
+        let step1Duration = CONFIG.step1Timer;
         let step2Duration = CONFIG.step2Timer;
-        let step3Duration = CONFIG.step3Timer;
         let timerInterval = null;
         
         function getCurrentLampDuration() {
-            return currentStep === 2 ? step2Duration : (currentStep === 3 ? step3Duration : 0);
+            return currentStep === 1 ? step1Duration : step2Duration;
         }
         
         function getTotalStepDuration() {
+            if (currentStep === 1) return step1Duration * 5;
             if (currentStep === 2) return step2Duration * 5;
-            if (currentStep === 3) return step3Duration * 5;
             return 0;
         }
         
@@ -777,7 +784,7 @@
                 wrapper.className = 'lamp-wrapper';
                 
                 const lamp = document.createElement('div');
-                lamp.className = 'lamp black';
+                lamp.className = 'lamp red';
                 lamp.id = `lamp-${i}`;
                 lamp.onclick = () => onLampClick(i);
                 
@@ -815,14 +822,6 @@
                         );
                     }
                 }
-                if (parts.length === 1 && parts[0].includes(':')) {
-                    const timeParts = parts[0].split(':');
-                    if (timeParts.length === 2) {
-                        const now = new Date();
-                        return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 
-                                      parseInt(timeParts[0]), parseInt(timeParts[1]), 0);
-                    }
-                }
             } catch (e) {
                 console.error('Parse error:', e);
             }
@@ -847,7 +846,7 @@
         }
         
         function getTotalCycleDuration() {
-            return (step2Duration * 5) + (step3Duration * 5);
+            return (step1Duration * 5) + (step2Duration * 5);
         }
         
         function calculateStateAtTime(elapsedSeconds) {
@@ -855,53 +854,40 @@
             elapsedSeconds = Math.max(0, elapsedSeconds);
             let cycleElapsed = totalDuration > 0 ? elapsedSeconds % totalDuration : 0;
             
-            if (cycleElapsed < 1) {
-                return { step: 1, states: ['red','red','red','red','red'], lampsCompleted: 0, remainingLamp: 0, remainingStep: 0 };
-            }
+            const step1Total = step1Duration * 5;
             
-            const step2Total = step2Duration * 5;
-            if (cycleElapsed <= step2Total) {
-                const lampsCompleted = Math.min(Math.floor(cycleElapsed / step2Duration), 5);
-                const timeIntoCurrent = cycleElapsed % step2Duration;
+            if (cycleElapsed <= step1Total) {
+                const lampsCompleted = Math.min(Math.floor(cycleElapsed / step1Duration), 5);
+                const timeIntoCurrent = cycleElapsed % step1Duration;
                 const states = ['red','red','red','red','red'];
                 for (let i = 0; i < lampsCompleted; i++) states[i] = 'green';
-                const remainingLamp = lampsCompleted >= 5 ? 0 : step2Duration - timeIntoCurrent;
-                const remainingStep = step2Total - cycleElapsed;
-                return { step: 2, states, lampsCompleted, remainingLamp, remainingStep };
+                const remainingLamp = lampsCompleted >= 5 ? 0 : step1Duration - timeIntoCurrent;
+                const remainingStep = step1Total - cycleElapsed;
+                return { step: 1, states, lampsCompleted, remainingLamp, remainingStep };
             }
             
-            const step3Elapsed = cycleElapsed - step2Total;
-            const step3Total = step3Duration * 5;
-            const lampsCompleted = Math.min(Math.floor(step3Elapsed / step3Duration), 5);
-            const timeIntoCurrent = step3Elapsed % step3Duration;
+            const step2Elapsed = cycleElapsed - step1Total;
+            const step2Total = step2Duration * 5;
+            const lampsCompleted = Math.min(Math.floor(step2Elapsed / step2Duration), 5);
+            const timeIntoCurrent = step2Elapsed % step2Duration;
             const states = ['green','green','green','green','green'];
             for (let i = 0; i < lampsCompleted; i++) states[4 - i] = 'black';
-            const remainingLamp = lampsCompleted >= 5 ? 0 : step3Duration - timeIntoCurrent;
-            const remainingStep = step3Total - step3Elapsed;
-            return { step: 3, states, lampsCompleted, remainingLamp, remainingStep };
+            const remainingLamp = lampsCompleted >= 5 ? 0 : step2Duration - timeIntoCurrent;
+            const remainingStep = step2Total - step2Elapsed;
+            return { step: 2, states, lampsCompleted, remainingLamp, remainingStep };
         }
         
         function calculateElapsedFromCurrentState() {
-            const totalDuration = getTotalCycleDuration();
-            
             if (currentStep === 1) {
-                return 0;
-            }
-            
-            let elapsedInCycle = 0;
-            
-            if (currentStep === 2) {
+                const lampsElapsed = currentLampIndex;
+                const timeIntoCurrentLamp = step1Duration - timeRemaining;
+                return Math.max(0, (lampsElapsed * step1Duration) + timeIntoCurrentLamp);
+            } else {
+                const step1Total = step1Duration * 5;
                 const lampsElapsed = currentLampIndex;
                 const timeIntoCurrentLamp = step2Duration - timeRemaining;
-                elapsedInCycle = (lampsElapsed * step2Duration) + timeIntoCurrentLamp;
-            } else if (currentStep === 3) {
-                const step2Total = step2Duration * 5;
-                const lampsElapsed = currentLampIndex;
-                const timeIntoCurrentLamp = step3Duration - timeRemaining;
-                elapsedInCycle = step2Total + (lampsElapsed * step3Duration) + timeIntoCurrentLamp;
+                return Math.max(0, step1Total + (lampsElapsed * step2Duration) + timeIntoCurrentLamp);
             }
-            
-            return Math.max(0, elapsedInCycle);
         }
         
         function syncStateWithElapsedTime(elapsedSeconds) {
@@ -921,7 +907,7 @@
         function updateProgressBar() {
             const bar = document.getElementById('progressBar');
             const total = getTotalStepDuration();
-            if (currentStep === 1 || total === 0) {
+            if (total === 0) {
                 bar.style.width = '0%';
             } else {
                 const elapsed = total - totalStepRemaining;
@@ -939,7 +925,7 @@
             const now = new Date();
             syncStateWithElapsedTime(Math.max(0, (now - cycleStartTime) / 1000));
             
-            // Save to cookies
+            // Save current config to cookies
             saveConfigToCookies();
         }
         
@@ -948,6 +934,7 @@
             const parsed = parseGlobalTime(input);
             if (parsed && !isNaN(parsed.getTime())) {
                 CONFIG.globalTime = formatDateTime(parsed);
+                console.log('Setting new global time:', CONFIG.globalTime);
                 loadGlobalTimeAndSync();
                 document.getElementById('globalTimeInput').value = '';
             } else {
@@ -960,14 +947,8 @@
             const now = new Date();
             const calculatedStart = new Date(now.getTime() - (elapsedInCycle * 1000));
             
-            const totalCycleDuration = getTotalCycleDuration();
-            if (totalCycleDuration > 0 && elapsedInCycle > 0) {
-                if (calculatedStart > now) {
-                    calculatedStart.setTime(calculatedStart.getTime() - (totalCycleDuration * 1000));
-                }
-            }
-            
             CONFIG.globalTime = formatDateTime(calculatedStart);
+            console.log('Synced global time from current state:', CONFIG.globalTime);
             document.getElementById('globalTimeDisplay').textContent = CONFIG.globalTime;
             document.getElementById('globalTimeInput').value = CONFIG.globalTime;
             
@@ -979,10 +960,9 @@
             const elapsed = Math.max(0, (now - cycleStartTime) / 1000);
             syncStateWithElapsedTime(elapsed);
             
-            // Save to cookies
             saveConfigToCookies();
             
-            alert(`Global time synchronized from current state!\n\nCalculated start: ${CONFIG.globalTime}\nElapsed in cycle: ${formatTime(elapsedInCycle)}\nTotal cycle: ${formatTime(totalCycleDuration)}`);
+            alert(`Global time synchronized from current state!\n\nCalculated start: ${CONFIG.globalTime}\nElapsed in cycle: ${formatTime(elapsedInCycle)}\nTotal cycle: ${formatTime(getTotalCycleDuration())}`);
         }
         
         function resyncWithGlobalTime() {
@@ -1003,18 +983,18 @@
         function jumpToStep(step) {
             enableManualMode();
             
-            if (step === 2) {
-                currentStep = 2;
+            if (step === 1) {
+                currentStep = 1;
                 lampStates = ['red','red','red','red','red'];
+                currentLampIndex = 0;
+                timeRemaining = step1Duration;
+                totalStepRemaining = step1Duration * 5;
+            } else if (step === 2) {
+                currentStep = 2;
+                lampStates = ['green','green','green','green','green'];
                 currentLampIndex = 0;
                 timeRemaining = step2Duration;
                 totalStepRemaining = step2Duration * 5;
-            } else if (step === 3) {
-                currentStep = 3;
-                lampStates = ['green','green','green','green','green'];
-                currentLampIndex = 0;
-                timeRemaining = step3Duration;
-                totalStepRemaining = step3Duration * 5;
             }
             
             manualTimerRemaining = timeRemaining;
@@ -1030,11 +1010,6 @@
             enableManualMode();
             
             if (currentStep === 1) {
-                advanceToStep2();
-                return;
-            }
-            
-            if (currentStep === 2) {
                 if (lampIndex !== currentLampIndex) {
                     alert(`Click Lamp ${currentLampIndex + 1} next.`);
                     return;
@@ -1043,32 +1018,8 @@
                     lampStates[lampIndex] = 'green';
                     updateAllLamps();
                     currentLampIndex++;
-                    timeRemaining = step2Duration;
-                    totalStepRemaining = (5 - currentLampIndex) * step2Duration;
-                    
-                    if (currentLampIndex >= 5) {
-                        advanceToStep3();
-                    } else {
-                        manualTimerStart = new Date();
-                        manualTimerRemaining = timeRemaining;
-                        manualTotalStepRemaining = totalStepRemaining;
-                        updateClockDisplay();
-                        updateStepDisplay();
-                        updateProgressBar();
-                    }
-                }
-            } else if (currentStep === 3) {
-                const expected = 4 - currentLampIndex;
-                if (lampIndex !== expected) {
-                    alert(`Click Lamp ${expected + 1} next.`);
-                    return;
-                }
-                if (lampStates[lampIndex] === 'green') {
-                    lampStates[lampIndex] = 'black';
-                    updateAllLamps();
-                    currentLampIndex++;
-                    timeRemaining = step3Duration;
-                    totalStepRemaining = (5 - currentLampIndex) * step3Duration;
+                    timeRemaining = step1Duration;
+                    totalStepRemaining = (5 - currentLampIndex) * step1Duration;
                     
                     if (currentLampIndex >= 5) {
                         advanceToStep2();
@@ -1081,12 +1032,53 @@
                         updateProgressBar();
                     }
                 }
+            } else if (currentStep === 2) {
+                const expected = 4 - currentLampIndex;
+                if (lampIndex !== expected) {
+                    alert(`Click Lamp ${expected + 1} next.`);
+                    return;
+                }
+                if (lampStates[lampIndex] === 'green') {
+                    lampStates[lampIndex] = 'black';
+                    updateAllLamps();
+                    currentLampIndex++;
+                    timeRemaining = step2Duration;
+                    totalStepRemaining = (5 - currentLampIndex) * step2Duration;
+                    
+                    if (currentLampIndex >= 5) {
+                        advanceToStep1();
+                    } else {
+                        manualTimerStart = new Date();
+                        manualTimerRemaining = timeRemaining;
+                        manualTotalStepRemaining = totalStepRemaining;
+                        updateClockDisplay();
+                        updateStepDisplay();
+                        updateProgressBar();
+                    }
+                }
             }
+        }
+        
+        function advanceToStep1() {
+            currentStep = 1;
+            lampStates = ['red','red','red','red','red'];
+            currentLampIndex = 0;
+            timeRemaining = step1Duration;
+            totalStepRemaining = step1Duration * 5;
+            
+            manualTimerStart = new Date();
+            manualTimerRemaining = timeRemaining;
+            manualTotalStepRemaining = totalStepRemaining;
+            
+            updateAllLamps();
+            updateClockDisplay();
+            updateStepDisplay();
+            updateProgressBar();
         }
         
         function advanceToStep2() {
             currentStep = 2;
-            lampStates = ['red','red','red','red','red'];
+            lampStates = ['green','green','green','green','green'];
             currentLampIndex = 0;
             timeRemaining = step2Duration;
             totalStepRemaining = step2Duration * 5;
@@ -1101,35 +1093,18 @@
             updateProgressBar();
         }
         
-        function advanceToStep3() {
-            currentStep = 3;
-            lampStates = ['green','green','green','green','green'];
-            currentLampIndex = 0;
-            timeRemaining = step3Duration;
-            totalStepRemaining = step3Duration * 5;
-            
-            manualTimerStart = new Date();
-            manualTimerRemaining = timeRemaining;
-            manualTotalStepRemaining = totalStepRemaining;
-            
-            updateAllLamps();
-            updateClockDisplay();
-            updateStepDisplay();
-            updateProgressBar();
-        }
-        
-        function autoAdvanceStep2Lamp() {
-            if (currentStep === 2 && currentLampIndex < 5) {
+        function autoAdvanceStep1Lamp() {
+            if (currentStep === 1 && currentLampIndex < 5) {
                 for (let i = currentLampIndex; i < 5; i++) {
                     if (lampStates[i] === 'red') {
                         lampStates[i] = 'green';
                         updateAllLamps();
                         currentLampIndex = i + 1;
-                        timeRemaining = step2Duration;
-                        totalStepRemaining = (5 - currentLampIndex) * step2Duration;
+                        timeRemaining = step1Duration;
+                        totalStepRemaining = (5 - currentLampIndex) * step1Duration;
                         
                         if (currentLampIndex >= 5) {
-                            advanceToStep3();
+                            advanceToStep2();
                         } else {
                             manualTimerStart = new Date();
                             manualTimerRemaining = timeRemaining;
@@ -1144,19 +1119,19 @@
             }
         }
         
-        function autoAdvanceStep3Lamp() {
-            if (currentStep === 3 && currentLampIndex < 5) {
+        function autoAdvanceStep2Lamp() {
+            if (currentStep === 2 && currentLampIndex < 5) {
                 for (let i = currentLampIndex; i < 5; i++) {
                     const ri = 4 - i;
                     if (lampStates[ri] === 'green') {
                         lampStates[ri] = 'black';
                         updateAllLamps();
                         currentLampIndex = i + 1;
-                        timeRemaining = step3Duration;
-                        totalStepRemaining = (5 - currentLampIndex) * step3Duration;
+                        timeRemaining = step2Duration;
+                        totalStepRemaining = (5 - currentLampIndex) * step2Duration;
                         
                         if (currentLampIndex >= 5) {
-                            advanceToStep2();
+                            advanceToStep1();
                         } else {
                             manualTimerStart = new Date();
                             manualTimerRemaining = timeRemaining;
@@ -1175,9 +1150,8 @@
             const el = document.getElementById('stepStatus');
             const m = manualOverride ? ' [Manual]' : '';
             const texts = {
-                1: `Step 1 — All Red${m}`,
-                2: `Step 2 — Red → Green (${currentLampIndex}/5)${m}`,
-                3: `Step 3 — Green → Black (${currentLampIndex}/5)${m}`
+                1: `Step 1 — Red → Green (${currentLampIndex}/5)${m}`,
+                2: `Step 2 — Green → Black (${currentLampIndex}/5)${m}`
             };
             el.textContent = texts[currentStep] || '';
         }
@@ -1205,23 +1179,24 @@
         }
         
         function updateTimerDisplay() {
+            const s1 = parseInt(document.getElementById('step1TimerInput').value) || 0;
             const s2 = parseInt(document.getElementById('step2TimerInput').value) || 0;
-            const s3 = parseInt(document.getElementById('step3TimerInput').value) || 0;
+            document.getElementById('step1Conversion').textContent = `${Math.floor(s1/60)} min ${s1%60} sec`;
             document.getElementById('step2Conversion').textContent = `${Math.floor(s2/60)} min ${s2%60} sec`;
-            document.getElementById('step3Conversion').textContent = `${Math.floor(s3/60)} min ${s3%60} sec`;
         }
         
         function updateTimers() {
+            const s1 = parseInt(document.getElementById('step1TimerInput').value);
             const s2 = parseInt(document.getElementById('step2TimerInput').value);
-            const s3 = parseInt(document.getElementById('step3TimerInput').value);
-            if (s2 <= 0 || s3 <= 0 || isNaN(s2) || isNaN(s3)) {
+            if (s1 <= 0 || s2 <= 0 || isNaN(s1) || isNaN(s2)) {
                 alert('Timer values must be positive numbers');
                 return;
             }
+            step1Duration = s1;
             step2Duration = s2;
-            step3Duration = s3;
+            CONFIG.step1Timer = s1;
             CONFIG.step2Timer = s2;
-            CONFIG.step3Timer = s3;
+            console.log('Timers updated:', { step1: s1, step2: s2 });
             updateTimerDisplay();
             loadGlobalTimeAndSync();
         }
@@ -1229,6 +1204,7 @@
         function resetCycle() {
             const now = new Date();
             CONFIG.globalTime = formatDateTime(now);
+            console.log('Cycle reset, new global time:', CONFIG.globalTime);
             loadGlobalTimeAndSync();
         }
         
@@ -1240,7 +1216,7 @@
                     syncStateWithElapsedTime(Math.max(0, (now - cycleStartTime) / 1000));
                 }
             } else if (manualOverride && manualTimerStart) {
-                if (currentStep === 2 || currentStep === 3) {
+                if (currentStep === 1 || currentStep === 2) {
                     const elapsed = (now - manualTimerStart) / 1000;
                     timeRemaining = Math.floor(Math.max(0, manualTimerRemaining - elapsed));
                     totalStepRemaining = Math.floor(Math.max(0, manualTotalStepRemaining - elapsed));
@@ -1248,8 +1224,8 @@
                     updateProgressBar();
                     
                     if (timeRemaining <= 0 && currentLampIndex < 5) {
-                        if (currentStep === 2) autoAdvanceStep2Lamp();
-                        else if (currentStep === 3) autoAdvanceStep3Lamp();
+                        if (currentStep === 1) autoAdvanceStep1Lamp();
+                        else if (currentStep === 2) autoAdvanceStep2Lamp();
                     }
                 }
             }
@@ -1258,16 +1234,24 @@
         }
         
         function init() {
-            // Load config from cookies
-            loadConfigFromCookies();
+            console.log('=== INITIALIZATION START ===');
+            console.log('Default config:', DEFAULT_CONFIG);
+            
+            // Start with defaults
+            CONFIG = { ...DEFAULT_CONFIG };
+            
+            // Load saved values from cookies (overrides defaults if cookies exist)
+            const loadedFromCookies = loadConfigFromCookies();
+            console.log('Loaded from cookies:', loadedFromCookies);
+            console.log('Final config:', CONFIG);
             
             // Set durations from config
+            step1Duration = CONFIG.step1Timer;
             step2Duration = CONFIG.step2Timer;
-            step3Duration = CONFIG.step3Timer;
             
-            // Set input values
+            // Update input fields with current config values
+            document.getElementById('step1TimerInput').value = CONFIG.step1Timer;
             document.getElementById('step2TimerInput').value = CONFIG.step2Timer;
-            document.getElementById('step3TimerInput').value = CONFIG.step3Timer;
             document.getElementById('globalTimeInput').value = CONFIG.globalTime;
             document.getElementById('globalTimeDisplay').textContent = CONFIG.globalTime;
             document.getElementById('manualIndicator').style.display = 'none';
@@ -1278,19 +1262,12 @@
             updateCookieIndicator();
             
             // Initial sync
-            if (CONFIG.autoSyncOnStart) {
-                loadGlobalTimeAndSync();
-            } else {
-                updateAllLamps();
-                updateClockDisplay();
-                updateStepDisplay();
-            }
-            
-            // Save initial config to cookies
-            saveConfigToCookies();
+            loadGlobalTimeAndSync();
             
             // Start timer loop
             timerInterval = setInterval(timerLoop, 100);
+            
+            console.log('=== INITIALIZATION COMPLETE ===');
         }
         
         window.onload = init;
