@@ -55,6 +55,15 @@
             margin-bottom: 24px;
             padding-bottom: 16px;
             border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .header-left {
+            flex: 1;
         }
 
         .title {
@@ -122,6 +131,20 @@
         .info-value.accent-green { color: var(--accent-green); }
         .info-value.accent-blue { color: var(--accent-blue); }
         .info-value.accent-orange { color: var(--accent-orange); }
+
+        /* Cookie indicator */
+        .cookie-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            background: rgba(63, 185, 80, 0.1);
+            border: 1px solid rgba(63, 185, 80, 0.3);
+            border-radius: 4px;
+            font-size: 10px;
+            color: var(--accent-green);
+            font-weight: 500;
+        }
 
         /* Input */
         .input-row {
@@ -401,6 +424,13 @@
             color: var(--accent-orange);
         }
 
+        .alert.info {
+            display: block;
+            background: rgba(88, 166, 255, 0.1);
+            border: 1px solid rgba(88, 166, 255, 0.3);
+            color: var(--accent-blue);
+        }
+
         /* Divider */
         .divider {
             border: none;
@@ -443,21 +473,39 @@
 </head>
 <body>
     <script>
-        // ============ CONFIGURATION ============
-        const CONFIG = {
+        // ============ DEFAULT CONFIGURATION ============
+        const DEFAULT_CONFIG = {
             step2Timer: 1440,  // 24 minutes = 1440 seconds
             step3Timer: 900,   // 15 minutes = 900 seconds
-            globalTime: '09.06.2026 01:16',
+            globalTime: '',    // Will be set to current time if empty
             autoSyncOnStart: true
         };
+        
+        // Cookie configuration keys
+        const COOKIE_KEYS = {
+            step2Timer: 'lamp_timer_step2',
+            step3Timer: 'lamp_timer_step3',
+            globalTime: 'lamp_timer_global_time'
+        };
+        
+        // Current configuration (loaded from cookies or defaults)
+        let CONFIG = { ...DEFAULT_CONFIG };
         // ======================================
     </script>
 
     <div class="main-container">
         <!-- Header -->
         <div class="header">
-            <div class="title">Lamp Cycle Timer</div>
-            <div class="subtitle">Global Time Synchronization</div>
+            <div class="header-left">
+                <div class="title">Lamp Cycle Timer</div>
+                <div class="subtitle">Global Time Synchronization</div>
+            </div>
+            <div style="display: flex; gap: 8px; align-items: center;">
+                <span class="cookie-indicator" id="cookieIndicator">🍪 Cookies Active</span>
+                <button class="btn btn-danger" onclick="resetAllCookies()" title="Clear all saved settings and restore defaults">
+                    Reset Cookies
+                </button>
+            </div>
         </div>
 
         <!-- Global Time -->
@@ -520,16 +568,16 @@
                     <div class="info-label" style="margin-bottom: 4px;">Step 2 Interval</div>
                     <div class="input-row">
                         <input type="number" class="text-input small" id="step2TimerInput" 
-                               value="1440" min="1" onchange="updateTimerDisplay()">
-                        <span style="font-size: 12px; color: var(--text-secondary);" id="step2Conversion">24 min 0 sec</span>
+                               min="1" onchange="updateTimerDisplay()">
+                        <span style="font-size: 12px; color: var(--text-secondary);" id="step2Conversion">--</span>
                     </div>
                 </div>
                 <div>
                     <div class="info-label" style="margin-bottom: 4px;">Step 3 Interval</div>
                     <div class="input-row">
                         <input type="number" class="text-input small" id="step3TimerInput" 
-                               value="900" min="1" onchange="updateTimerDisplay()">
-                        <span style="font-size: 12px; color: var(--text-secondary);" id="step3Conversion">15 min 0 sec</span>
+                               min="1" onchange="updateTimerDisplay()">
+                        <span style="font-size: 12px; color: var(--text-secondary);" id="step3Conversion">--</span>
                     </div>
                 </div>
             </div>
@@ -559,16 +607,141 @@
         <hr class="divider">
 
         <!-- Actions -->
-        <div class="btn-group" style="justify-content: space-between;">
+        <div class="btn-group" style="justify-content: space-between; align-items: flex-start;">
             <div class="btn-group">
                 <button class="btn btn-danger" onclick="resetCycle()">Reset to Step 1</button>
                 <button class="btn btn-success" onclick="resyncWithGlobalTime()">Re-sync</button>
             </div>
-            <div class="alert warning" id="manualIndicator">Manual mode active — Re-sync to restore global time</div>
+            <div id="statusMessages">
+                <div class="alert warning" id="manualIndicator">Manual mode active — Re-sync to restore global time</div>
+            </div>
         </div>
     </div>
 
     <script>
+        // ============ COOKIE MANAGEMENT ============
+        
+        function setCookie(name, value, days = 365) {
+            const expires = new Date();
+            expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+            document.cookie = `${name}=${encodeURIComponent(value)};expires=${expires.toUTCString()};path=/;SameSite=Strict`;
+        }
+        
+        function getCookie(name) {
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i].trim();
+                if (c.indexOf(nameEQ) === 0) {
+                    return decodeURIComponent(c.substring(nameEQ.length));
+                }
+            }
+            return null;
+        }
+        
+        function deleteCookie(name) {
+            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;SameSite=Strict`;
+        }
+        
+        function deleteAllCookies() {
+            deleteCookie(COOKIE_KEYS.step2Timer);
+            deleteCookie(COOKIE_KEYS.step3Timer);
+            deleteCookie(COOKIE_KEYS.globalTime);
+        }
+        
+        function loadConfigFromCookies() {
+            // Load step 2 timer
+            const step2Cookie = getCookie(COOKIE_KEYS.step2Timer);
+            if (step2Cookie !== null) {
+                const val = parseInt(step2Cookie);
+                if (!isNaN(val) && val > 0) {
+                    CONFIG.step2Timer = val;
+                }
+            }
+            
+            // Load step 3 timer
+            const step3Cookie = getCookie(COOKIE_KEYS.step3Timer);
+            if (step3Cookie !== null) {
+                const val = parseInt(step3Cookie);
+                if (!isNaN(val) && val > 0) {
+                    CONFIG.step3Timer = val;
+                }
+            }
+            
+            // Load global time
+            const globalTimeCookie = getCookie(COOKIE_KEYS.globalTime);
+            if (globalTimeCookie !== null && globalTimeCookie.trim() !== '') {
+                CONFIG.globalTime = globalTimeCookie.trim();
+            } else {
+                // Set default global time to now
+                const now = new Date();
+                CONFIG.globalTime = formatDateTime(now);
+            }
+        }
+        
+        function saveConfigToCookies() {
+            setCookie(COOKIE_KEYS.step2Timer, CONFIG.step2Timer);
+            setCookie(COOKIE_KEYS.step3Timer, CONFIG.step3Timer);
+            setCookie(COOKIE_KEYS.globalTime, CONFIG.globalTime);
+            updateCookieIndicator();
+        }
+        
+        function resetAllCookies() {
+            if (confirm('Reset all saved settings to defaults?\n\nThis will clear:\n- Step 2 Timer\n- Step 3 Timer\n- Global Time\n\nThe page will reload with default values.')) {
+                deleteAllCookies();
+                
+                // Reset CONFIG to defaults
+                CONFIG = { ...DEFAULT_CONFIG };
+                const now = new Date();
+                CONFIG.globalTime = formatDateTime(now);
+                
+                // Update UI
+                document.getElementById('step2TimerInput').value = CONFIG.step2Timer;
+                document.getElementById('step3TimerInput').value = CONFIG.step3Timer;
+                document.getElementById('globalTimeInput').value = CONFIG.globalTime;
+                document.getElementById('globalTimeDisplay').textContent = CONFIG.globalTime;
+                
+                step2Duration = CONFIG.step2Timer;
+                step3Duration = CONFIG.step3Timer;
+                
+                updateTimerDisplay();
+                updateCookieIndicator();
+                loadGlobalTimeAndSync();
+                
+                // Show confirmation
+                const statusDiv = document.getElementById('statusMessages');
+                const existingAlerts = statusDiv.querySelectorAll('.alert.info');
+                existingAlerts.forEach(a => a.remove());
+                
+                const infoAlert = document.createElement('div');
+                infoAlert.className = 'alert info';
+                infoAlert.textContent = '✓ Settings reset to defaults';
+                infoAlert.style.display = 'block';
+                statusDiv.appendChild(infoAlert);
+                
+                setTimeout(() => infoAlert.remove(), 3000);
+            }
+        }
+        
+        function updateCookieIndicator() {
+            const indicator = document.getElementById('cookieIndicator');
+            const hasCookies = getCookie(COOKIE_KEYS.step2Timer) !== null || 
+                              getCookie(COOKIE_KEYS.step3Timer) !== null || 
+                              getCookie(COOKIE_KEYS.globalTime) !== null;
+            
+            if (hasCookies) {
+                indicator.textContent = '🍪 Saved';
+                indicator.style.background = 'rgba(63, 185, 80, 0.1)';
+                indicator.style.borderColor = 'rgba(63, 185, 80, 0.3)';
+                indicator.style.color = 'var(--accent-green)';
+            } else {
+                indicator.textContent = '🍪 Defaults';
+                indicator.style.background = 'rgba(139, 148, 158, 0.1)';
+                indicator.style.borderColor = 'rgba(139, 148, 158, 0.3)';
+                indicator.style.color = 'var(--text-secondary)';
+            }
+        }
+        
         // ============ APPLICATION LOGIC ============
         
         let currentStep = 1;
@@ -682,7 +855,6 @@
             elapsedSeconds = Math.max(0, elapsedSeconds);
             let cycleElapsed = totalDuration > 0 ? elapsedSeconds % totalDuration : 0;
             
-            // Step 1: All red (instant)
             if (cycleElapsed < 1) {
                 return { step: 1, states: ['red','red','red','red','red'], lampsCompleted: 0, remainingLamp: 0, remainingStep: 0 };
             }
@@ -709,25 +881,20 @@
             return { step: 3, states, lampsCompleted, remainingLamp, remainingStep };
         }
         
-        // Calculate elapsed time from current state back to cycle start
         function calculateElapsedFromCurrentState() {
             const totalDuration = getTotalCycleDuration();
             
             if (currentStep === 1) {
-                // Step 1 is at the very beginning of a cycle
                 return 0;
             }
             
             let elapsedInCycle = 0;
             
             if (currentStep === 2) {
-                // We're in Step 2
-                const step2Total = step2Duration * 5;
                 const lampsElapsed = currentLampIndex;
                 const timeIntoCurrentLamp = step2Duration - timeRemaining;
                 elapsedInCycle = (lampsElapsed * step2Duration) + timeIntoCurrentLamp;
             } else if (currentStep === 3) {
-                // We're in Step 3
                 const step2Total = step2Duration * 5;
                 const lampsElapsed = currentLampIndex;
                 const timeIntoCurrentLamp = step3Duration - timeRemaining;
@@ -771,6 +938,9 @@
             
             const now = new Date();
             syncStateWithElapsedTime(Math.max(0, (now - cycleStartTime) / 1000));
+            
+            // Save to cookies
+            saveConfigToCookies();
         }
         
         function setNewGlobalTime() {
@@ -786,37 +956,31 @@
         }
         
         function syncGlobalTimeFromCurrentState() {
-            // Calculate how many seconds have elapsed in the cycle to reach current state
             const elapsedInCycle = calculateElapsedFromCurrentState();
-            
-            // Calculate the global start time: current time - elapsed in cycle
             const now = new Date();
             const calculatedStart = new Date(now.getTime() - (elapsedInCycle * 1000));
             
-            // Also adjust for completed cycles if needed
             const totalCycleDuration = getTotalCycleDuration();
             if (totalCycleDuration > 0 && elapsedInCycle > 0) {
-                // The calculated start is already correct for the current cycle
-                // Just ensure it's not in the future
                 if (calculatedStart > now) {
                     calculatedStart.setTime(calculatedStart.getTime() - (totalCycleDuration * 1000));
                 }
             }
             
-            // Update config and display
             CONFIG.globalTime = formatDateTime(calculatedStart);
             document.getElementById('globalTimeDisplay').textContent = CONFIG.globalTime;
             document.getElementById('globalTimeInput').value = CONFIG.globalTime;
             
-            // Enable sync mode
             cycleStartTime = calculatedStart;
             autoSyncEnabled = true;
             manualOverride = false;
             document.getElementById('manualIndicator').style.display = 'none';
             
-            // Sync the state
             const elapsed = Math.max(0, (now - cycleStartTime) / 1000);
             syncStateWithElapsedTime(elapsed);
+            
+            // Save to cookies
+            saveConfigToCookies();
             
             alert(`Global time synchronized from current state!\n\nCalculated start: ${CONFIG.globalTime}\nElapsed in cycle: ${formatTime(elapsedInCycle)}\nTotal cycle: ${formatTime(totalCycleDuration)}`);
         }
@@ -866,7 +1030,6 @@
             enableManualMode();
             
             if (currentStep === 1) {
-                // Step 1 is instant - auto advance to step 2
                 advanceToStep2();
                 return;
             }
@@ -908,7 +1071,7 @@
                     totalStepRemaining = (5 - currentLampIndex) * step3Duration;
                     
                     if (currentLampIndex >= 5) {
-                        advanceToStep2(); // Cycle: Step 3 complete -> Step 2
+                        advanceToStep2();
                     } else {
                         manualTimerStart = new Date();
                         manualTimerRemaining = timeRemaining;
@@ -993,7 +1156,7 @@
                         totalStepRemaining = (5 - currentLampIndex) * step3Duration;
                         
                         if (currentLampIndex >= 5) {
-                            advanceToStep2(); // Cycle: Step 3 complete -> Step 2
+                            advanceToStep2();
                         } else {
                             manualTimerStart = new Date();
                             manualTimerRemaining = timeRemaining;
@@ -1095,14 +1258,26 @@
         }
         
         function init() {
-            createLamps();
+            // Load config from cookies
+            loadConfigFromCookies();
+            
+            // Set durations from config
+            step2Duration = CONFIG.step2Timer;
+            step3Duration = CONFIG.step3Timer;
+            
+            // Set input values
             document.getElementById('step2TimerInput').value = CONFIG.step2Timer;
             document.getElementById('step3TimerInput').value = CONFIG.step3Timer;
             document.getElementById('globalTimeInput').value = CONFIG.globalTime;
             document.getElementById('globalTimeDisplay').textContent = CONFIG.globalTime;
             document.getElementById('manualIndicator').style.display = 'none';
-            updateTimerDisplay();
             
+            // Create UI elements
+            createLamps();
+            updateTimerDisplay();
+            updateCookieIndicator();
+            
+            // Initial sync
             if (CONFIG.autoSyncOnStart) {
                 loadGlobalTimeAndSync();
             } else {
@@ -1111,6 +1286,10 @@
                 updateStepDisplay();
             }
             
+            // Save initial config to cookies
+            saveConfigToCookies();
+            
+            // Start timer loop
             timerInterval = setInterval(timerLoop, 100);
         }
         
