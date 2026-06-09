@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Exec Timer</title>
+    <title>Lamp Cycle Timer</title>
     <style>
         :root {
             --bg-primary: #0d1117;
@@ -19,6 +19,8 @@
             --accent-yellow: #e3b341;
             --accent-purple: #a371f7;
             --accent-cyan: #39d2c0;
+            --accent-pink: #f778ba;
+            --accent-grey: #6e7681;
             --border-color: #30363d;
             --shadow-color: rgba(0, 0, 0, 0.4);
         }
@@ -322,6 +324,16 @@
             box-shadow: none;
         }
 
+        .lamp.cooldown {
+            background: #484f58;
+            box-shadow: 0 0 16px rgba(110, 118, 129, 0.25);
+            cursor: pointer;
+        }
+
+        .lamp.cooldown:hover {
+            box-shadow: 0 0 24px rgba(110, 118, 129, 0.5);
+        }
+
         .lamp:hover {
             transform: scale(1.08);
             border-color: rgba(255,255,255,0.2);
@@ -383,11 +395,53 @@
             color: var(--accent-cyan);
         }
 
+        .timer-value.cooldown {
+            color: var(--accent-grey);
+        }
+
         .timer-separator {
             font-size: 24px;
             color: var(--text-secondary);
             font-weight: 300;
             padding-top: 20px;
+        }
+
+        /* Cooldown display */
+        .cooldown-section {
+            background: rgba(110, 118, 129, 0.05);
+            border: 1px solid rgba(110, 118, 129, 0.2);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            margin-top: 16px;
+            display: none;
+        }
+
+        .cooldown-section.active {
+            display: block;
+        }
+
+        .cooldown-label {
+            font-size: 11px;
+            color: var(--accent-grey);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .cooldown-value {
+            font-size: 32px;
+            font-weight: 600;
+            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+            letter-spacing: 2px;
+            color: var(--accent-grey);
+        }
+
+        .cooldown-hint {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-top: 8px;
         }
 
         /* Progress bar */
@@ -405,6 +459,10 @@
             background: #58a6ff;
             border-radius: 2px;
             transition: width 0.3s ease;
+        }
+
+        .progress-bar.cooldown {
+            background: var(--accent-grey);
         }
 
         /* Alert */
@@ -460,6 +518,10 @@
                 font-size: 28px;
             }
             
+            .cooldown-value {
+                font-size: 24px;
+            }
+            
             .lamps-container {
                 gap: 12px;
             }
@@ -473,10 +535,11 @@
 </head>
 <body>
     <script>
-        // ============ DEFAULT CONFIGURATION (used only on first visit or after reset) ============
+        // ============ DEFAULT CONFIGURATION ============
         const DEFAULT_CONFIG = {
-            step1Timer: 1440,  // Step 1 (Red → Green): 24 minutes = 1440 seconds
-            step2Timer: 720,   // Step 2 (Green → Black): 15 minutes = 900 seconds
+            step1Timer: 1440,    // Step 1 (Red → Green): 24 minutes = 1440 seconds
+            step2Timer: 900,     // Step 2 (Green → Black): 15 minutes = 900 seconds
+            cooldownTimer: 300,  // Cooldown between Step 2 → Step 1: 5 minutes = 300 seconds
             globalTime: '09.06.2026 00:00'
         };
         
@@ -484,10 +547,10 @@
         const COOKIE_KEYS = {
             step1Timer: 'lamp_timer_step1',
             step2Timer: 'lamp_timer_step2',
+            cooldownTimer: 'lamp_timer_cooldown',
             globalTime: 'lamp_timer_global_time'
         };
         
-        // Current configuration - start with defaults, then override from cookies
         let CONFIG = { ...DEFAULT_CONFIG };
         // ======================================
     </script>
@@ -496,8 +559,8 @@
         <!-- Header -->
         <div class="header">
             <div class="header-left">
-                <div class="title">Executive Hangars Timer</div>
-                <div class="subtitle">With Global Time Synchronization</div>
+                <div class="title">Lamp Cycle Timer</div>
+                <div class="subtitle">Global Time Synchronization</div>
             </div>
             <div style="display: flex; gap: 8px; align-items: center;">
                 <span class="cookie-indicator" id="cookieIndicator">🍪 Cookies Active</span>
@@ -580,6 +643,14 @@
                     </div>
                 </div>
             </div>
+            <div style="margin-bottom: 10px;">
+                <div class="info-label" style="margin-bottom: 4px;">Cooldown (Step 2 → Step 1)</div>
+                <div class="input-row">
+                    <input type="number" class="text-input small" id="cooldownTimerInput" 
+                           min="1" onchange="updateTimerDisplay()">
+                    <span style="font-size: 12px; color: var(--text-secondary);" id="cooldownConversion">--</span>
+                </div>
+            </div>
             <button class="btn btn-primary" onclick="updateTimers()">Apply Configuration</button>
         </div>
 
@@ -600,6 +671,16 @@
             </div>
             <div class="progress-container">
                 <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+            </div>
+            
+            <!-- Cooldown Display -->
+            <div class="cooldown-section" id="cooldownSection">
+                <div class="cooldown-label">⏳ Cooldown — All Lamps Grey</div>
+                <div class="cooldown-value" id="cooldownDisplay">05:00</div>
+                <div class="progress-container" style="margin-top: 8px;">
+                    <div class="progress-bar cooldown" id="cooldownProgressBar" style="width: 0%"></div>
+                </div>
+                <div class="cooldown-hint">Click any lamp to skip cooldown and start Step 1</div>
             </div>
         </div>
 
@@ -645,77 +726,76 @@
         function deleteAllCookies() {
             deleteCookie(COOKIE_KEYS.step1Timer);
             deleteCookie(COOKIE_KEYS.step2Timer);
+            deleteCookie(COOKIE_KEYS.cooldownTimer);
             deleteCookie(COOKIE_KEYS.globalTime);
         }
         
         function loadConfigFromCookies() {
             let loadedFromCookies = false;
             
-            // Load step 1 timer from cookie
             const step1Cookie = getCookie(COOKIE_KEYS.step1Timer);
             if (step1Cookie !== null) {
                 const val = parseInt(step1Cookie);
                 if (!isNaN(val) && val > 0) {
                     CONFIG.step1Timer = val;
                     loadedFromCookies = true;
-                    console.log('Loaded step1Timer from cookie:', val);
                 }
             }
             
-            // Load step 2 timer from cookie
             const step2Cookie = getCookie(COOKIE_KEYS.step2Timer);
             if (step2Cookie !== null) {
                 const val = parseInt(step2Cookie);
                 if (!isNaN(val) && val > 0) {
                     CONFIG.step2Timer = val;
                     loadedFromCookies = true;
-                    console.log('Loaded step2Timer from cookie:', val);
                 }
             }
             
-            // Load global time from cookie
+            const cooldownCookie = getCookie(COOKIE_KEYS.cooldownTimer);
+            if (cooldownCookie !== null) {
+                const val = parseInt(cooldownCookie);
+                if (!isNaN(val) && val > 0) {
+                    CONFIG.cooldownTimer = val;
+                    loadedFromCookies = true;
+                }
+            }
+            
             const globalTimeCookie = getCookie(COOKIE_KEYS.globalTime);
             if (globalTimeCookie !== null && globalTimeCookie.trim() !== '') {
                 CONFIG.globalTime = globalTimeCookie.trim();
                 loadedFromCookies = true;
-                console.log('Loaded globalTime from cookie:', CONFIG.globalTime);
-            } else {
-                console.log('No globalTime cookie found, using default:', CONFIG.globalTime);
             }
             
             return loadedFromCookies;
         }
         
         function saveConfigToCookies() {
-            console.log('Saving config to cookies:', CONFIG);
             setCookie(COOKIE_KEYS.step1Timer, CONFIG.step1Timer);
             setCookie(COOKIE_KEYS.step2Timer, CONFIG.step2Timer);
+            setCookie(COOKIE_KEYS.cooldownTimer, CONFIG.cooldownTimer);
             setCookie(COOKIE_KEYS.globalTime, CONFIG.globalTime);
             updateCookieIndicator();
         }
         
         function resetAllCookies() {
-            if (confirm('Reset all saved settings to defaults?\n\nThis will clear:\n- Step 1 Timer\n- Step 2 Timer\n- Global Time\n\nDefaults will be restored.')) {
+            if (confirm('Reset all saved settings to defaults?\n\nThis will clear:\n- Step 1 Timer\n- Step 2 Timer\n- Cooldown Timer\n- Global Time\n\nDefaults will be restored.')) {
                 deleteAllCookies();
-                
-                // Reset CONFIG to defaults
                 CONFIG = { ...DEFAULT_CONFIG };
-                console.log('Reset to defaults:', CONFIG);
                 
-                // Update UI
                 document.getElementById('step1TimerInput').value = CONFIG.step1Timer;
                 document.getElementById('step2TimerInput').value = CONFIG.step2Timer;
+                document.getElementById('cooldownTimerInput').value = CONFIG.cooldownTimer;
                 document.getElementById('globalTimeInput').value = CONFIG.globalTime;
                 document.getElementById('globalTimeDisplay').textContent = CONFIG.globalTime;
                 
                 step1Duration = CONFIG.step1Timer;
                 step2Duration = CONFIG.step2Timer;
+                cooldownDuration = CONFIG.cooldownTimer;
                 
                 updateTimerDisplay();
                 updateCookieIndicator();
                 loadGlobalTimeAndSync();
                 
-                // Show confirmation
                 const statusDiv = document.getElementById('statusMessages');
                 const existingAlerts = statusDiv.querySelectorAll('.alert.info');
                 existingAlerts.forEach(a => a.remove());
@@ -734,6 +814,7 @@
             const indicator = document.getElementById('cookieIndicator');
             const hasCookies = getCookie(COOKIE_KEYS.step1Timer) !== null || 
                               getCookie(COOKIE_KEYS.step2Timer) !== null || 
+                              getCookie(COOKIE_KEYS.cooldownTimer) !== null || 
                               getCookie(COOKIE_KEYS.globalTime) !== null;
             
             if (hasCookies) {
@@ -751,23 +832,35 @@
         
         // ============ APPLICATION LOGIC ============
         
-        let currentStep = 1;
+        // Steps:
+        // Step 1: Red → Green (left to right)
+        // Step 2: Green → Black (right to left)
+        // Cooldown: All grey → Step 1 (all red)
+        // Cycle: Step 1 → Step 2 → Cooldown → Step 1 ...
+        
+        let currentStep = 1;  // 1, 2, or 0 for cooldown
         let lampStates = ['red', 'red', 'red', 'red', 'red'];
         let currentLampIndex = 0;
         let timeRemaining = 0;
         let totalStepRemaining = 0;
+        let cooldownRemaining = 0;
+        let cooldownTotal = 0;
         let cycleStartTime = null;
         let manualOverride = false;
         let autoSyncEnabled = true;
         let manualTimerStart = null;
         let manualTimerRemaining = 0;
         let manualTotalStepRemaining = 0;
+        let manualCooldownRemaining = 0;
         let step1Duration = CONFIG.step1Timer;
         let step2Duration = CONFIG.step2Timer;
+        let cooldownDuration = CONFIG.cooldownTimer;
         let timerInterval = null;
         
         function getCurrentLampDuration() {
-            return currentStep === 1 ? step1Duration : step2Duration;
+            if (currentStep === 1) return step1Duration;
+            if (currentStep === 2) return step2Duration;
+            return 0;
         }
         
         function getTotalStepDuration() {
@@ -801,7 +894,13 @@
         function updateAllLamps() {
             for (let i = 0; i < 5; i++) {
                 const lamp = document.getElementById(`lamp-${i}`);
-                if (lamp) lamp.className = 'lamp ' + lampStates[i];
+                if (lamp) {
+                    if (currentStep === 0) {
+                        lamp.className = 'lamp cooldown';
+                    } else {
+                        lamp.className = 'lamp ' + lampStates[i];
+                    }
+                }
             }
         }
         
@@ -845,8 +944,15 @@
             return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
         }
         
+        function formatTimeShort(seconds) {
+            const s = Math.floor(Math.max(0, seconds));
+            const m = Math.floor(s / 60);
+            const sec = s % 60;
+            return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+        }
+        
         function getTotalCycleDuration() {
-            return (step1Duration * 5) + (step2Duration * 5);
+            return (step1Duration * 5) + (step2Duration * 5) + cooldownDuration;
         }
         
         function calculateStateAtTime(elapsedSeconds) {
@@ -855,7 +961,10 @@
             let cycleElapsed = totalDuration > 0 ? elapsedSeconds % totalDuration : 0;
             
             const step1Total = step1Duration * 5;
+            const step2Total = step2Duration * 5;
+            const stepsTotal = step1Total + step2Total;
             
+            // Step 1: Red → Green
             if (cycleElapsed <= step1Total) {
                 const lampsCompleted = Math.min(Math.floor(cycleElapsed / step1Duration), 5);
                 const timeIntoCurrent = cycleElapsed % step1Duration;
@@ -863,18 +972,33 @@
                 for (let i = 0; i < lampsCompleted; i++) states[i] = 'green';
                 const remainingLamp = lampsCompleted >= 5 ? 0 : step1Duration - timeIntoCurrent;
                 const remainingStep = step1Total - cycleElapsed;
-                return { step: 1, states, lampsCompleted, remainingLamp, remainingStep };
+                return { step: 1, states, lampsCompleted, remainingLamp, remainingStep, cooldownRemaining: 0, cooldownTotal: cooldownDuration };
             }
             
-            const step2Elapsed = cycleElapsed - step1Total;
-            const step2Total = step2Duration * 5;
-            const lampsCompleted = Math.min(Math.floor(step2Elapsed / step2Duration), 5);
-            const timeIntoCurrent = step2Elapsed % step2Duration;
-            const states = ['green','green','green','green','green'];
-            for (let i = 0; i < lampsCompleted; i++) states[4 - i] = 'black';
-            const remainingLamp = lampsCompleted >= 5 ? 0 : step2Duration - timeIntoCurrent;
-            const remainingStep = step2Total - step2Elapsed;
-            return { step: 2, states, lampsCompleted, remainingLamp, remainingStep };
+            // Step 2: Green → Black
+            if (cycleElapsed <= stepsTotal) {
+                const step2Elapsed = cycleElapsed - step1Total;
+                const lampsCompleted = Math.min(Math.floor(step2Elapsed / step2Duration), 5);
+                const timeIntoCurrent = step2Elapsed % step2Duration;
+                const states = ['green','green','green','green','green'];
+                for (let i = 0; i < lampsCompleted; i++) states[4 - i] = 'black';
+                const remainingLamp = lampsCompleted >= 5 ? 0 : step2Duration - timeIntoCurrent;
+                const remainingStep = step2Total - step2Elapsed;
+                return { step: 2, states, lampsCompleted, remainingLamp, remainingStep, cooldownRemaining: 0, cooldownTotal: cooldownDuration };
+            }
+            
+            // Cooldown: All grey
+            const cooldownElapsed = cycleElapsed - stepsTotal;
+            const cooldownRem = cooldownDuration - cooldownElapsed;
+            return { 
+                step: 0, 
+                states: ['black','black','black','black','black'], 
+                lampsCompleted: 0, 
+                remainingLamp: 0, 
+                remainingStep: 0, 
+                cooldownRemaining: Math.max(0, cooldownRem),
+                cooldownTotal: cooldownDuration 
+            };
         }
         
         function calculateElapsedFromCurrentState() {
@@ -882,12 +1006,17 @@
                 const lampsElapsed = currentLampIndex;
                 const timeIntoCurrentLamp = step1Duration - timeRemaining;
                 return Math.max(0, (lampsElapsed * step1Duration) + timeIntoCurrentLamp);
-            } else {
+            } else if (currentStep === 2) {
                 const step1Total = step1Duration * 5;
                 const lampsElapsed = currentLampIndex;
                 const timeIntoCurrentLamp = step2Duration - timeRemaining;
                 return Math.max(0, step1Total + (lampsElapsed * step2Duration) + timeIntoCurrentLamp);
+            } else if (currentStep === 0) {
+                const stepsTotal = (step1Duration * 5) + (step2Duration * 5);
+                const cooldownElapsed = cooldownDuration - cooldownRemaining;
+                return Math.max(0, stepsTotal + cooldownElapsed);
             }
+            return 0;
         }
         
         function syncStateWithElapsedTime(elapsedSeconds) {
@@ -897,21 +1026,45 @@
             currentLampIndex = s.lampsCompleted;
             timeRemaining = Math.floor(s.remainingLamp);
             totalStepRemaining = Math.floor(s.remainingStep);
+            cooldownRemaining = Math.floor(s.cooldownRemaining);
+            cooldownTotal = s.cooldownTotal;
             
             updateAllLamps();
             updateClockDisplay();
             updateStepDisplay();
             updateProgressBar();
+            updateCooldownDisplay();
         }
         
         function updateProgressBar() {
             const bar = document.getElementById('progressBar');
-            const total = getTotalStepDuration();
-            if (total === 0) {
+            if (currentStep === 0) {
                 bar.style.width = '0%';
+                bar.className = 'progress-bar';
             } else {
-                const elapsed = total - totalStepRemaining;
-                bar.style.width = Math.min(100, Math.max(0, (elapsed / total) * 100)) + '%';
+                const total = getTotalStepDuration();
+                if (total === 0) {
+                    bar.style.width = '0%';
+                } else {
+                    const elapsed = total - totalStepRemaining;
+                    bar.style.width = Math.min(100, Math.max(0, (elapsed / total) * 100)) + '%';
+                }
+                bar.className = 'progress-bar';
+            }
+        }
+        
+        function updateCooldownDisplay() {
+            const section = document.getElementById('cooldownSection');
+            const display = document.getElementById('cooldownDisplay');
+            const progressBar = document.getElementById('cooldownProgressBar');
+            
+            if (currentStep === 0) {
+                section.classList.add('active');
+                display.textContent = formatTimeShort(cooldownRemaining);
+                const elapsed = cooldownTotal - cooldownRemaining;
+                progressBar.style.width = cooldownTotal > 0 ? Math.min(100, Math.max(0, (elapsed / cooldownTotal) * 100)) + '%' : '0%';
+            } else {
+                section.classList.remove('active');
             }
         }
         
@@ -925,7 +1078,6 @@
             const now = new Date();
             syncStateWithElapsedTime(Math.max(0, (now - cycleStartTime) / 1000));
             
-            // Save current config to cookies
             saveConfigToCookies();
         }
         
@@ -934,7 +1086,6 @@
             const parsed = parseGlobalTime(input);
             if (parsed && !isNaN(parsed.getTime())) {
                 CONFIG.globalTime = formatDateTime(parsed);
-                console.log('Setting new global time:', CONFIG.globalTime);
                 loadGlobalTimeAndSync();
                 document.getElementById('globalTimeInput').value = '';
             } else {
@@ -948,7 +1099,6 @@
             const calculatedStart = new Date(now.getTime() - (elapsedInCycle * 1000));
             
             CONFIG.globalTime = formatDateTime(calculatedStart);
-            console.log('Synced global time from current state:', CONFIG.globalTime);
             document.getElementById('globalTimeDisplay').textContent = CONFIG.globalTime;
             document.getElementById('globalTimeInput').value = CONFIG.globalTime;
             
@@ -978,6 +1128,7 @@
             manualTimerStart = new Date();
             manualTimerRemaining = timeRemaining;
             manualTotalStepRemaining = totalStepRemaining;
+            manualCooldownRemaining = cooldownRemaining;
         }
         
         function jumpToStep(step) {
@@ -989,24 +1140,35 @@
                 currentLampIndex = 0;
                 timeRemaining = step1Duration;
                 totalStepRemaining = step1Duration * 5;
+                cooldownRemaining = 0;
             } else if (step === 2) {
                 currentStep = 2;
                 lampStates = ['green','green','green','green','green'];
                 currentLampIndex = 0;
                 timeRemaining = step2Duration;
                 totalStepRemaining = step2Duration * 5;
+                cooldownRemaining = 0;
             }
             
             manualTimerRemaining = timeRemaining;
             manualTotalStepRemaining = totalStepRemaining;
+            manualCooldownRemaining = cooldownRemaining;
             
             updateAllLamps();
             updateClockDisplay();
             updateStepDisplay();
             updateProgressBar();
+            updateCooldownDisplay();
         }
         
         function onLampClick(lampIndex) {
+            // If in cooldown, clicking any lamp skips to Step 1
+            if (currentStep === 0) {
+                enableManualMode();
+                advanceToStep1();
+                return;
+            }
+            
             enableManualMode();
             
             if (currentStep === 1) {
@@ -1046,7 +1208,7 @@
                     totalStepRemaining = (5 - currentLampIndex) * step2Duration;
                     
                     if (currentLampIndex >= 5) {
-                        advanceToStep1();
+                        advanceToCooldown();
                     } else {
                         manualTimerStart = new Date();
                         manualTimerRemaining = timeRemaining;
@@ -1065,15 +1227,18 @@
             currentLampIndex = 0;
             timeRemaining = step1Duration;
             totalStepRemaining = step1Duration * 5;
+            cooldownRemaining = 0;
             
             manualTimerStart = new Date();
             manualTimerRemaining = timeRemaining;
             manualTotalStepRemaining = totalStepRemaining;
+            manualCooldownRemaining = 0;
             
             updateAllLamps();
             updateClockDisplay();
             updateStepDisplay();
             updateProgressBar();
+            updateCooldownDisplay();
         }
         
         function advanceToStep2() {
@@ -1082,15 +1247,39 @@
             currentLampIndex = 0;
             timeRemaining = step2Duration;
             totalStepRemaining = step2Duration * 5;
+            cooldownRemaining = 0;
             
             manualTimerStart = new Date();
             manualTimerRemaining = timeRemaining;
             manualTotalStepRemaining = totalStepRemaining;
+            manualCooldownRemaining = 0;
             
             updateAllLamps();
             updateClockDisplay();
             updateStepDisplay();
             updateProgressBar();
+            updateCooldownDisplay();
+        }
+        
+        function advanceToCooldown() {
+            currentStep = 0;
+            lampStates = ['black','black','black','black','black'];
+            currentLampIndex = 0;
+            timeRemaining = 0;
+            totalStepRemaining = 0;
+            cooldownRemaining = cooldownDuration;
+            cooldownTotal = cooldownDuration;
+            
+            manualTimerStart = new Date();
+            manualTimerRemaining = 0;
+            manualTotalStepRemaining = 0;
+            manualCooldownRemaining = cooldownDuration;
+            
+            updateAllLamps();
+            updateClockDisplay();
+            updateStepDisplay();
+            updateProgressBar();
+            updateCooldownDisplay();
         }
         
         function autoAdvanceStep1Lamp() {
@@ -1131,7 +1320,7 @@
                         totalStepRemaining = (5 - currentLampIndex) * step2Duration;
                         
                         if (currentLampIndex >= 5) {
-                            advanceToStep1();
+                            advanceToCooldown();
                         } else {
                             manualTimerStart = new Date();
                             manualTimerRemaining = timeRemaining;
@@ -1146,10 +1335,17 @@
             }
         }
         
+        function autoAdvanceCooldown() {
+            if (currentStep === 0) {
+                advanceToStep1();
+            }
+        }
+        
         function updateStepDisplay() {
             const el = document.getElementById('stepStatus');
             const m = manualOverride ? ' [Manual]' : '';
             const texts = {
+                0: `Cooldown — Click any lamp to start Step 1${m}`,
                 1: `Step 1 — Red → Green (${currentLampIndex}/5)${m}`,
                 2: `Step 2 — Green → Black (${currentLampIndex}/5)${m}`
             };
@@ -1181,22 +1377,26 @@
         function updateTimerDisplay() {
             const s1 = parseInt(document.getElementById('step1TimerInput').value) || 0;
             const s2 = parseInt(document.getElementById('step2TimerInput').value) || 0;
+            const cd = parseInt(document.getElementById('cooldownTimerInput').value) || 0;
             document.getElementById('step1Conversion').textContent = `${Math.floor(s1/60)} min ${s1%60} sec`;
             document.getElementById('step2Conversion').textContent = `${Math.floor(s2/60)} min ${s2%60} sec`;
+            document.getElementById('cooldownConversion').textContent = `${Math.floor(cd/60)} min ${cd%60} sec`;
         }
         
         function updateTimers() {
             const s1 = parseInt(document.getElementById('step1TimerInput').value);
             const s2 = parseInt(document.getElementById('step2TimerInput').value);
-            if (s1 <= 0 || s2 <= 0 || isNaN(s1) || isNaN(s2)) {
+            const cd = parseInt(document.getElementById('cooldownTimerInput').value);
+            if (s1 <= 0 || s2 <= 0 || cd <= 0 || isNaN(s1) || isNaN(s2) || isNaN(cd)) {
                 alert('Timer values must be positive numbers');
                 return;
             }
             step1Duration = s1;
             step2Duration = s2;
+            cooldownDuration = cd;
             CONFIG.step1Timer = s1;
             CONFIG.step2Timer = s2;
-            console.log('Timers updated:', { step1: s1, step2: s2 });
+            CONFIG.cooldownTimer = cd;
             updateTimerDisplay();
             loadGlobalTimeAndSync();
         }
@@ -1204,7 +1404,6 @@
         function resetCycle() {
             const now = new Date();
             CONFIG.globalTime = formatDateTime(now);
-            console.log('Cycle reset, new global time:', CONFIG.globalTime);
             loadGlobalTimeAndSync();
         }
         
@@ -1216,8 +1415,9 @@
                     syncStateWithElapsedTime(Math.max(0, (now - cycleStartTime) / 1000));
                 }
             } else if (manualOverride && manualTimerStart) {
+                const elapsed = (now - manualTimerStart) / 1000;
+                
                 if (currentStep === 1 || currentStep === 2) {
-                    const elapsed = (now - manualTimerStart) / 1000;
                     timeRemaining = Math.floor(Math.max(0, manualTimerRemaining - elapsed));
                     totalStepRemaining = Math.floor(Math.max(0, manualTotalStepRemaining - elapsed));
                     updateClockDisplay();
@@ -1227,6 +1427,13 @@
                         if (currentStep === 1) autoAdvanceStep1Lamp();
                         else if (currentStep === 2) autoAdvanceStep2Lamp();
                     }
+                } else if (currentStep === 0) {
+                    cooldownRemaining = Math.floor(Math.max(0, manualCooldownRemaining - elapsed));
+                    updateCooldownDisplay();
+                    
+                    if (cooldownRemaining <= 0) {
+                        autoAdvanceCooldown();
+                    }
                 }
             }
             
@@ -1234,40 +1441,26 @@
         }
         
         function init() {
-            console.log('=== INITIALIZATION START ===');
-            console.log('Default config:', DEFAULT_CONFIG);
-            
-            // Start with defaults
             CONFIG = { ...DEFAULT_CONFIG };
+            loadConfigFromCookies();
             
-            // Load saved values from cookies (overrides defaults if cookies exist)
-            const loadedFromCookies = loadConfigFromCookies();
-            console.log('Loaded from cookies:', loadedFromCookies);
-            console.log('Final config:', CONFIG);
-            
-            // Set durations from config
             step1Duration = CONFIG.step1Timer;
             step2Duration = CONFIG.step2Timer;
+            cooldownDuration = CONFIG.cooldownTimer;
             
-            // Update input fields with current config values
             document.getElementById('step1TimerInput').value = CONFIG.step1Timer;
             document.getElementById('step2TimerInput').value = CONFIG.step2Timer;
+            document.getElementById('cooldownTimerInput').value = CONFIG.cooldownTimer;
             document.getElementById('globalTimeInput').value = CONFIG.globalTime;
             document.getElementById('globalTimeDisplay').textContent = CONFIG.globalTime;
             document.getElementById('manualIndicator').style.display = 'none';
             
-            // Create UI elements
             createLamps();
             updateTimerDisplay();
             updateCookieIndicator();
-            
-            // Initial sync
             loadGlobalTimeAndSync();
             
-            // Start timer loop
             timerInterval = setInterval(timerLoop, 100);
-            
-            console.log('=== INITIALIZATION COMPLETE ===');
         }
         
         window.onload = init;
