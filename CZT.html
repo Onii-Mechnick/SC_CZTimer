@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lamp Cycle Timer</title>
+    <title id="dynamicTitle">1S0🟢5🔴 - Lamp Cycle Timer</title>
     <style>
         :root {
             --bg-primary: #0d1117;
@@ -73,6 +73,14 @@
             font-weight: 600;
             color: var(--text-primary);
             letter-spacing: -0.3px;
+        }
+
+        .dynamic-state {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+            letter-spacing: 1px;
         }
 
         .subtitle {
@@ -560,6 +568,7 @@
         <div class="header">
             <div class="header-left">
                 <div class="title">Lamp Cycle Timer</div>
+                <div class="dynamic-state" id="dynamicStateDisplay">1S0🟢5🔴</div>
                 <div class="subtitle">Global Time Synchronization</div>
             </div>
             <div style="display: flex; gap: 8px; align-items: center;">
@@ -832,12 +841,6 @@
         
         // ============ APPLICATION LOGIC ============
         
-        // Steps:
-        // Step 1: Red → Green (left to right)
-        // Step 2: Green → Black (right to left)
-        // Cooldown: All grey → Step 1 (all red)
-        // Cycle: Step 1 → Step 2 → Cooldown → Step 1 ...
-        
         let currentStep = 1;  // 1, 2, or 0 for cooldown
         let lampStates = ['red', 'red', 'red', 'red', 'red'];
         let currentLampIndex = 0;
@@ -902,6 +905,39 @@
                     }
                 }
             }
+        }
+        
+        function getDynamicTitle() {
+            if (currentStep === 0) {
+                // Cooldown: C5🔘
+                return `C5🔘 - Lamp Cycle Timer`;
+            } else if (currentStep === 1) {
+                // Step 1: count greens and reds
+                let greens = 0;
+                let reds = 0;
+                for (let i = 0; i < 5; i++) {
+                    if (lampStates[i] === 'green') greens++;
+                    else if (lampStates[i] === 'red') reds++;
+                }
+                return `1S${greens}🟢${reds}🔴 - Lamp Cycle Timer`;
+            } else if (currentStep === 2) {
+                // Step 2: count greens and blacks
+                let greens = 0;
+                let blacks = 0;
+                for (let i = 0; i < 5; i++) {
+                    if (lampStates[i] === 'green') greens++;
+                    else if (lampStates[i] === 'black') blacks++;
+                }
+                return `2S${greens}🟢${blacks}⚫ - Lamp Cycle Timer`;
+            }
+            return 'Lamp Cycle Timer';
+        }
+        
+        function updateDynamicTitle() {
+            const title = getDynamicTitle();
+            document.title = title;
+            document.getElementById('dynamicTitle').textContent = title;
+            document.getElementById('dynamicStateDisplay').textContent = title.replace(' - Lamp Cycle Timer', '');
         }
         
         function parseGlobalTime(timeStr) {
@@ -1034,6 +1070,7 @@
             updateStepDisplay();
             updateProgressBar();
             updateCooldownDisplay();
+            updateDynamicTitle();
         }
         
         function updateProgressBar() {
@@ -1159,6 +1196,7 @@
             updateStepDisplay();
             updateProgressBar();
             updateCooldownDisplay();
+            updateDynamicTitle();
         }
         
         function onLampClick(lampIndex) {
@@ -1192,6 +1230,7 @@
                         updateClockDisplay();
                         updateStepDisplay();
                         updateProgressBar();
+                        updateDynamicTitle();
                     }
                 }
             } else if (currentStep === 2) {
@@ -1216,6 +1255,7 @@
                         updateClockDisplay();
                         updateStepDisplay();
                         updateProgressBar();
+                        updateDynamicTitle();
                     }
                 }
             }
@@ -1239,6 +1279,7 @@
             updateStepDisplay();
             updateProgressBar();
             updateCooldownDisplay();
+            updateDynamicTitle();
         }
         
         function advanceToStep2() {
@@ -1259,6 +1300,7 @@
             updateStepDisplay();
             updateProgressBar();
             updateCooldownDisplay();
+            updateDynamicTitle();
         }
         
         function advanceToCooldown() {
@@ -1280,6 +1322,7 @@
             updateStepDisplay();
             updateProgressBar();
             updateCooldownDisplay();
+            updateDynamicTitle();
         }
         
         function autoAdvanceStep1Lamp() {
@@ -1301,6 +1344,7 @@
                             updateClockDisplay();
                             updateStepDisplay();
                             updateProgressBar();
+                            updateDynamicTitle();
                         }
                         break;
                     }
@@ -1328,6 +1372,7 @@
                             updateClockDisplay();
                             updateStepDisplay();
                             updateProgressBar();
+                            updateDynamicTitle();
                         }
                         break;
                     }
