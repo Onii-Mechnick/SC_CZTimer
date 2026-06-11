@@ -545,14 +545,11 @@
             step1Timer: 1440,
             step2Timer: 720,
             cooldownTimer: 300,
-            globalTime: '11.06.2026 02:23:00'  // Now includes seconds
+            globalTime: '11.06.2026 02:23:00'
         };
 
-        // Config version - increment when defaults change
-        const CONFIG_VERSION = 'v5';  // Bumped for seconds precision
-
-        // HTML version - increment when HTML file is updated
-        const HTML_VERSION = 'v5';
+        const CONFIG_VERSION = 'v6';
+        const HTML_VERSION = 'v6';
 
         const COOKIE_KEYS = {
             step1Timer: 'lamp_timer_step1',
@@ -573,7 +570,7 @@
                 <div class="title">
                     Lamp Cycle Timer
                     <span class="utc-badge">UTC+0</span>
-                    <span class="version-badge" id="versionBadge">v3</span>
+                    <span class="version-badge" id="versionBadge">v4</span>
                 </div>
                 <div class="dynamic-state" id="dynamicStateDisplay">1S0🟢5🔴</div>
                 <div class="subtitle">Global Time Synchronization (Second Precision)</div>
@@ -589,32 +586,6 @@
             <span>🔄 A new version of this page is available.</span>
             <button class="btn btn-primary" onclick="forceReload()">Refresh Now</button>
         </div>
-
-        <!-- Global Time -->
-        <div class="section">
-            <div class="section-title">Global Time Reference (UTC+0)</div>
-            <div class="grid-3">
-                <div class="info-card">
-                    <div class="info-label">Global Start Time (UTC)</div>
-                    <div class="info-value accent-green" id="globalTimeDisplay">--</div>
-                </div>
-                <div class="info-card">
-                    <div class="info-label">Current Time (UTC)</div>
-                    <div class="info-value accent-blue" id="currentTimeDisplay">--</div>
-                </div>
-                <div class="info-card">
-                    <div class="info-label">Elapsed</div>
-                    <div class="info-value accent-orange" id="elapsedTimeDisplay">--</div>
-                </div>
-            </div>
-            <div class="input-row" style="margin-top: 12px;">
-                <input type="text" class="text-input" id="globalTimeInput" placeholder="DD.MM.YYYY HH:MM:SS (UTC)">
-                <button class="btn btn-primary" onclick="setNewGlobalTime()">Set &amp; Sync</button>
-                <button class="btn btn-warning" onclick="syncGlobalTimeFromCurrentState()">Set Global Time by Current State</button>
-            </div>
-        </div>
-
-        <hr class="divider">
 
         <!-- Step Controls -->
         <div class="section">
@@ -662,6 +633,32 @@
                     <div class="progress-bar cooldown" id="cooldownProgressBar" style="width: 0%"></div>
                 </div>
                 <div class="cooldown-hint">Click any lamp to skip cooldown and start Step 1</div>
+            </div>
+        </div>
+
+        <hr class="divider">
+
+        <!-- Global Time (MOVED BELOW TIMER DISPLAY) -->
+        <div class="section">
+            <div class="section-title">Global Time Reference (UTC+0)</div>
+            <div class="grid-3">
+                <div class="info-card">
+                    <div class="info-label">Global Start Time (UTC)</div>
+                    <div class="info-value accent-green" id="globalTimeDisplay">--</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-label">Current Time (UTC)</div>
+                    <div class="info-value accent-blue" id="currentTimeDisplay">--</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-label">Elapsed</div>
+                    <div class="info-value accent-orange" id="elapsedTimeDisplay">--</div>
+                </div>
+            </div>
+            <div class="input-row" style="margin-top: 12px;">
+                <input type="text" class="text-input" id="globalTimeInput" placeholder="DD.MM.YYYY HH:MM:SS (UTC)">
+                <button class="btn btn-primary" onclick="setNewGlobalTime()">Set &amp; Sync</button>
+                <button class="btn btn-warning" onclick="syncGlobalTimeFromCurrentState()">Set Global Time by Current State</button>
             </div>
         </div>
 
@@ -882,48 +879,27 @@
             ind.style.color = has ? 'var(--accent-green)' : 'var(--text-secondary)';
         }
 
-        // ============ UTC TIME UTILITIES (WITH SECOND PRECISION) ============
-        
-        function getCurrentUTCTimestamp() { 
-            return Date.now();  // Millisecond precision
-        }
+        // ============ UTC TIME UTILITIES ============
+        function getCurrentUTCTimestamp() { return Date.now(); }
 
-        // Parse "DD.MM.YYYY HH:MM:SS" as UTC, returns timestamp in milliseconds
         function parseGlobalTimeToUTCTimestamp(timeStr) {
             const parts = timeStr.trim().split(' ');
             if (parts.length === 2) {
                 const dateParts = parts[0].split('.');
                 const timeParts = parts[1].split(':');
-                
-                // Support both HH:MM and HH:MM:SS formats
                 const hours = parseInt(timeParts[0]) || 0;
                 const minutes = parseInt(timeParts[1]) || 0;
                 const seconds = timeParts.length >= 3 ? (parseInt(timeParts[2]) || 0) : 0;
-                
                 if (dateParts.length === 3) {
-                    return Date.UTC(
-                        parseInt(dateParts[2]),      // year
-                        parseInt(dateParts[1]) - 1,  // month (0-indexed)
-                        parseInt(dateParts[0]),      // day
-                        hours,
-                        minutes,
-                        seconds
-                    );
+                    return Date.UTC(parseInt(dateParts[2]), parseInt(dateParts[1]) - 1, parseInt(dateParts[0]), hours, minutes, seconds);
                 }
             }
             return getCurrentUTCTimestamp();
         }
 
-        // Format UTC timestamp to "DD.MM.YYYY HH:MM:SS"
         function formatUTCTimestamp(timestamp) {
             const date = new Date(timestamp);
-            const d = String(date.getUTCDate()).padStart(2, '0');
-            const m = String(date.getUTCMonth() + 1).padStart(2, '0');
-            const y = date.getUTCFullYear();
-            const h = String(date.getUTCHours()).padStart(2, '0');
-            const min = String(date.getUTCMinutes()).padStart(2, '0');
-            const s = String(date.getUTCSeconds()).padStart(2, '0');
-            return `${d}.${m}.${y} ${h}:${min}:${s}`;
+            return `${String(date.getUTCDate()).padStart(2,'0')}.${String(date.getUTCMonth()+1).padStart(2,'0')}.${date.getUTCFullYear()} ${String(date.getUTCHours()).padStart(2,'0')}:${String(date.getUTCMinutes()).padStart(2,'0')}:${String(date.getUTCSeconds()).padStart(2,'0')}`;
         }
 
         // ============ APPLICATION LOGIC ============
@@ -1050,7 +1026,7 @@
             currentStep = s.step;
             lampStates = s.states;
             currentLampIndex = s.lampsCompleted;
-            timeRemaining = s.remainingLamp;  // Keep fractional seconds for precision
+            timeRemaining = s.remainingLamp;
             totalStepRemaining = s.remainingStep;
             cooldownRemaining = s.cooldownRemaining;
             cooldownTotal = s.cooldownTotal;
@@ -1088,8 +1064,7 @@
             document.getElementById('globalTimeDisplay').textContent = formatUTCTimestamp(cycleStartTime) + ' UTC';
             document.getElementById('manualIndicator').style.display = 'none';
             const nowUTC = getCurrentUTCTimestamp();
-            const elapsedSeconds = Math.max(0, (nowUTC - cycleStartTime) / 1000);
-            syncStateWithElapsedTime(elapsedSeconds);
+            syncStateWithElapsedTime(Math.max(0, (nowUTC - cycleStartTime) / 1000));
             saveConfigToCookies();
         }
 
@@ -1166,8 +1141,7 @@
             document.getElementById('currentTimeDisplay').textContent = formatUTCTimestamp(nowUTC) + ' UTC'; 
             if (cycleStartTime) { 
                 const elapsedMs = Math.max(0, nowUTC - cycleStartTime);
-                const elapsedSeconds = elapsedMs / 1000;
-                const ts = Math.floor(elapsedSeconds);
+                const ts = Math.floor(elapsedMs / 1000);
                 const d = Math.floor(ts / 86400); 
                 const h = Math.floor((ts % 86400) / 3600); 
                 const m = Math.floor((ts % 3600) / 60); 
@@ -1185,9 +1159,7 @@
             const nowUTC = getCurrentUTCTimestamp(); 
             if (autoSyncEnabled && !manualOverride) { 
                 if (cycleStartTime) { 
-                    const elapsedMs = nowUTC - cycleStartTime;
-                    const elapsedSeconds = Math.max(0, elapsedMs / 1000);
-                    syncStateWithElapsedTime(elapsedSeconds); 
+                    syncStateWithElapsedTime(Math.max(0, (nowUTC - cycleStartTime) / 1000)); 
                 } 
             } else if (manualOverride && manualTimerStart) { 
                 const elapsed = (nowUTC - manualTimerStart) / 1000; 
