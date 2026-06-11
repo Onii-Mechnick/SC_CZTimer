@@ -136,6 +136,7 @@
             margin-bottom: 10px;
         }
 
+        /* Grid layouts */
         .grid-3 {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -259,6 +260,7 @@
             flex-wrap: wrap;
         }
 
+        /* Lamps */
         .lamps-container {
             display: flex;
             justify-content: center;
@@ -319,6 +321,7 @@
             padding: 0 10px;
         }
 
+        /* Timer display */
         .timer-display {
             display: grid;
             grid-template-columns: 1fr auto 1fr;
@@ -361,6 +364,7 @@
             padding-top: 20px;
         }
 
+        /* Cooldown display */
         .cooldown-section {
             background: rgba(110, 118, 129, 0.05);
             border: 1px solid rgba(110, 118, 129, 0.2);
@@ -395,6 +399,7 @@
             margin-top: 8px;
         }
 
+        /* Progress bar */
         .progress-container {
             width: 100%;
             height: 4px;
@@ -412,6 +417,7 @@
         }
         .progress-bar.cooldown { background: var(--accent-grey); }
 
+        /* Alert */
         .alert {
             padding: 8px 14px;
             border-radius: 6px;
@@ -433,6 +439,7 @@
             color: var(--accent-blue);
         }
 
+        /* Divider */
         .divider {
             border: none;
             border-top: 1px solid var(--border-color);
@@ -542,10 +549,10 @@
         };
 
         // Config version - increment when defaults change
-        const CONFIG_VERSION = 'v2';
+        const CONFIG_VERSION = 'v3';
 
         // HTML version - increment when HTML file is updated
-        const HTML_VERSION = 'v2';
+        const HTML_VERSION = 'v3';
 
         const COOKIE_KEYS = {
             step1Timer: 'lamp_timer_step1',
@@ -560,6 +567,7 @@
     </script>
 
     <div class="main-container">
+        <!-- Header -->
         <div class="header">
             <div class="header-left">
                 <div class="title">
@@ -576,12 +584,13 @@
             </div>
         </div>
 
-        <!-- Update notification bar (hidden by default) -->
+        <!-- Update notification bar -->
         <div class="update-bar" id="updateBar" style="display: none;">
             <span>🔄 A new version of this page is available.</span>
             <button class="btn btn-primary" onclick="forceReload()">Refresh Now</button>
         </div>
 
+        <!-- Global Time -->
         <div class="section">
             <div class="section-title">Global Time Reference (UTC+0)</div>
             <div class="grid-3">
@@ -607,6 +616,7 @@
 
         <hr class="divider">
 
+        <!-- Step Controls -->
         <div class="section">
             <div class="section-title">Step Navigation</div>
             <div class="btn-group">
@@ -615,6 +625,7 @@
             </div>
         </div>
 
+        <!-- Lamps -->
         <div class="section">
             <div class="info-card" style="text-align: center; margin-bottom: 12px;">
                 <div id="stepStatus" style="font-weight: 600; font-size: 14px;">Step 1 — Red → Green</div>
@@ -626,8 +637,37 @@
             </div>
         </div>
 
+        <!-- Timer Display (MOVED ABOVE CONFIGURATION) -->
+        <div class="section">
+            <div class="timer-display">
+                <div class="timer-block">
+                    <div class="timer-label">Current Lamp Remaining</div>
+                    <div class="timer-value remaining" id="clockDisplay">00:00:00</div>
+                </div>
+                <div class="timer-separator">/</div>
+                <div class="timer-block">
+                    <div class="timer-label">Total Step Remaining</div>
+                    <div class="timer-value total" id="totalStepDisplay">00:00:00</div>
+                </div>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+            </div>
+
+            <!-- Cooldown Display -->
+            <div class="cooldown-section" id="cooldownSection">
+                <div class="cooldown-label">⏳ Cooldown — All Lamps Grey</div>
+                <div class="cooldown-value" id="cooldownDisplay">05:00</div>
+                <div class="progress-container" style="margin-top: 8px;">
+                    <div class="progress-bar cooldown" id="cooldownProgressBar" style="width: 0%"></div>
+                </div>
+                <div class="cooldown-hint">Click any lamp to skip cooldown and start Step 1</div>
+            </div>
+        </div>
+
         <hr class="divider">
 
+        <!-- Timer Configuration (MOVED BELOW TIMER DISPLAY) -->
         <div class="section">
             <div class="section-title">Timer Configuration (seconds)</div>
             <div class="grid-2" style="margin-bottom: 10px;">
@@ -658,34 +698,7 @@
 
         <hr class="divider">
 
-        <div class="section">
-            <div class="timer-display">
-                <div class="timer-block">
-                    <div class="timer-label">Current Lamp Remaining</div>
-                    <div class="timer-value remaining" id="clockDisplay">00:00:00</div>
-                </div>
-                <div class="timer-separator">/</div>
-                <div class="timer-block">
-                    <div class="timer-label">Total Step Remaining</div>
-                    <div class="timer-value total" id="totalStepDisplay">00:00:00</div>
-                </div>
-            </div>
-            <div class="progress-container">
-                <div class="progress-bar" id="progressBar" style="width: 0%"></div>
-            </div>
-
-            <div class="cooldown-section" id="cooldownSection">
-                <div class="cooldown-label">⏳ Cooldown — All Lamps Grey</div>
-                <div class="cooldown-value" id="cooldownDisplay">05:00</div>
-                <div class="progress-container" style="margin-top: 8px;">
-                    <div class="progress-bar cooldown" id="cooldownProgressBar" style="width: 0%"></div>
-                </div>
-                <div class="cooldown-hint">Click any lamp to skip cooldown and start Step 1</div>
-            </div>
-        </div>
-
-        <hr class="divider">
-
+        <!-- Actions -->
         <div class="btn-group" style="justify-content: space-between; align-items: flex-start;">
             <div class="btn-group">
                 <button class="btn btn-danger" onclick="resetCycle()">Reset Cycle</button>
@@ -700,23 +713,16 @@
     <script>
         // ============ CACHE BUSTING & VERSION CHECK ============
         
-        // Force reload the page (bypass cache)
         function forceReload() {
-            // Clear the HTML version cookie so it checks again
             deleteCookie(COOKIE_KEYS.htmlVersion);
-            // Reload with cache bypass
             window.location.reload(true);
         }
         
-        // Check if HTML has been updated since last visit
         function checkHTMLVersion() {
             const savedHTMLVersion = getCookie(COOKIE_KEYS.htmlVersion);
             
             if (savedHTMLVersion && savedHTMLVersion !== HTML_VERSION) {
-                // HTML has been updated - show notification bar
                 document.getElementById('updateBar').style.display = 'flex';
-                
-                // Auto-reload after 3 seconds if user doesn't click
                 setTimeout(() => {
                     const bar = document.getElementById('updateBar');
                     if (bar.style.display !== 'none') {
@@ -725,14 +731,11 @@
                 }, 5000);
             }
             
-            // Always update the version cookie
             setCookie(COOKIE_KEYS.htmlVersion, HTML_VERSION);
         }
         
-        // Set up service worker for cache control (if supported)
         function setupServiceWorker() {
             if ('serviceWorker' in navigator) {
-                // Unregister any existing service workers
                 navigator.serviceWorker.getRegistrations().then(function(registrations) {
                     for (let registration of registrations) {
                         registration.unregister();
@@ -1141,7 +1144,6 @@
         function timerLoop() { const nowUTC = getCurrentUTCTimestamp(); if (autoSyncEnabled && !manualOverride) { if (cycleStartTime) { syncStateWithElapsedTime(Math.max(0, (nowUTC - cycleStartTime) / 1000)); } } else if (manualOverride && manualTimerStart) { const elapsed = (nowUTC - manualTimerStart) / 1000; if (currentStep === 1 || currentStep === 2) { timeRemaining = Math.floor(Math.max(0, manualTimerRemaining - elapsed)); totalStepRemaining = Math.floor(Math.max(0, manualTotalStepRemaining - elapsed)); updateClockDisplay(); updateProgressBar(); if (timeRemaining <= 0 && currentLampIndex < 5) { if (currentStep === 1) autoAdvanceStep1Lamp(); else if (currentStep === 2) autoAdvanceStep2Lamp(); } } else if (currentStep === 0) { cooldownRemaining = Math.floor(Math.max(0, manualCooldownRemaining - elapsed)); updateCooldownDisplay(); if (cooldownRemaining <= 0) autoAdvanceCooldown(); } } updateCurrentTimeDisplay(); }
 
         function init() {
-            // Setup cache prevention
             setupServiceWorker();
             
             CONFIG = { ...DEFAULT_CONFIG };
@@ -1160,10 +1162,7 @@
             updateTimerDisplay();
             updateCookieIndicator();
             
-            // Check for HTML updates
             checkHTMLVersion();
-            
-            // Check for config version changes
             checkConfigVersion();
             
             loadGlobalTimeAndSync();
@@ -1172,10 +1171,8 @@
 
         window.onload = init;
         
-        // Also add event listener for pageshow (handles back/forward cache)
         window.addEventListener('pageshow', function(event) {
             if (event.persisted) {
-                // Page was loaded from bfcache - force refresh
                 window.location.reload();
             }
         });
